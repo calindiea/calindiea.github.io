@@ -8,7 +8,7 @@ keywords: "blog, philosophy, theology, history, personal development, reflection
 
 Welcome to my blog where I share thoughts, experiences, and insights on various topics.
 
-{% assign life_posts = site.posts | where_exp: "post", "post.categories contains 'life'" %}
+{% assign life_posts = site.posts | where: "categories", "life" %}
 
 {% if life_posts.size > 0 %}
 <ul class="post-list">
