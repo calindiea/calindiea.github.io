@@ -8,14 +8,10 @@ keywords: "blog, philosophy, theology, history, personal development, reflection
 
 Welcome to my blog where I share thoughts, experiences, and insights on various topics.
 
-{% assign blog_posts = site.posts | where_exp: "post", "post.categories contains 'philosophy' or post.categories contains 'theology' or post.categories contains 'history' or post.categories contains 'personal'" %}
-{% if blog_posts.size == 0 %}
-  {% assign blog_posts = site.posts %}
-{% endif %}
-
-{% if blog_posts.size > 0 %}
+{% if site.posts.size > 0 %}
 <ul class="post-list">
-  {% for post in blog_posts %}
+  {% for post in site.posts %}
+  {% unless post.categories contains "tech" or post.categories contains "programming" or post.categories contains "development" %}
   <li class="post-list-item">
     <h3 class="post-title">
       <a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a>
@@ -35,6 +31,7 @@ Welcome to my blog where I share thoughts, experiences, and insights on various 
     </div>
     {% endif %}
   </li>
+  {% endunless %}
   {% endfor %}
 </ul>
 {% else %}
