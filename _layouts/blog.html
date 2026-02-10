@@ -1,0 +1,37 @@
+---
+layout: default
+---
+
+<div class="blog-listing">
+  <div class="blog-header">
+    <h1>Blog</h1>
+    <p class="blog-subtitle">Thoughts on engineering, design, and technology.</p>
+  </div>
+
+  {%- if site.posts.size > 0 -%}
+    {%- assign posts_by_year = site.posts | group_by_exp: "post", "post.date | date: '%Y'" -%}
+    {%- for year in posts_by_year -%}
+      <div class="blog-year-section">
+        <div class="blog-year-label">{{ year.name }}</div>
+        <div class="blog-post-list">
+          {%- for post in year.items -%}
+            <a href="{{ post.url | relative_url }}" class="blog-post-row">
+              <span class="blog-post-date">
+                <time datetime="{{ post.date | date_to_xmlschema }}">
+                  {{ post.date | date: "%b %-d" }}
+                </time>
+              </span>
+              <span class="blog-post-title">{{ post.title | escape }}</span>
+              {%- if post.categories.size > 0 -%}
+                <span class="blog-post-tags">{{ post.categories | join: " · " }}</span>
+              {%- endif -%}
+              <span class="blog-post-arrow">→</span>
+            </a>
+          {%- endfor -%}
+        </div>
+      </div>
+    {%- endfor -%}
+  {%- else -%}
+    <p>No posts yet.</p>
+  {%- endif -%}
+</div>

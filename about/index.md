@@ -1,7 +1,7 @@
 ---
 layout: page
 title: About
-description: "Diea Calin, a Data Engineer and Software Developer from Bucharest, Romania, working with financial risk modeling, AI tools, and data systems."
+description: "Data Engineer and Software Developer from Bucharest, Romania."
 permalink: /about/
 ---
 

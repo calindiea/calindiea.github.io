@@ -4,11 +4,12 @@
       {%- if site.logo -%}
         <img src="{{ site.logo | relative_url }}" alt="{{ site.title | escape }}" class="site-logo">
       {%- endif -%}
-      <span class="site-title-text">{{ site.title | escape }}</span>
+      <!-- <span class="site-title-text">{{ site.title | escape }}</span> -->
     </a>
     
     <ul class="nav-links">
       <li><a class="nav-link {% if page.url == '/' %}active{% endif %}" href="{{ "/" | relative_url }}">Home</a></li>
+      <li><a class="nav-link {% if page.url == '/blog/' %}active{% endif %}" href="{{ "/blog/" | relative_url }}">Blog</a></li>
       <li><a class="nav-link {% if page.url == '/about/' %}active{% endif %}" href="{{ "/about/" | relative_url }}">About</a></li>
     </ul>
   </nav>
