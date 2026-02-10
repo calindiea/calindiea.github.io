@@ -1,11 +1,10 @@
 ---
 layout: post
-title: "A Dive into SQL"
+title: "Oracle SQL notes #1"
 date: 2026-02-10 10:00:00 +0200
-categories: technology
+categories: technology, notes
 ---
 
-Welcome to a deep dive into the world of SQL! Whether you're a beginner looking to understand the fundamentals or an experienced developer seeking a refresher on advanced concepts, this guide will walk you through the essential aspects of SQL, from defining data structures to managing user access.
 
 ## The Building Blocks: Data Definition Language (DDL)
 
