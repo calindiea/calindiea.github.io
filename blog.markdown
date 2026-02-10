@@ -2,6 +2,8 @@
 layout: page
 title: Blog
 permalink: /blog/
+description: "Explore my blog covering philosophy, theology, history, and personal reflections. Insights on life, learning, and growth."
+keywords: "blog, philosophy, theology, history, personal development, reflections, essays"
 ---
 
 Welcome to my blog where I share thoughts, experiences, and insights on various topics.

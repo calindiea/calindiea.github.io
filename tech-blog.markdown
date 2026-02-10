@@ -2,6 +2,8 @@
 layout: page
 title: Tech Blog
 permalink: /tech-blog/
+description: "Technical insights, programming tutorials, and development experiences from a Data Engineer. Learn about GenAI, data pipelines, and software development."
+keywords: "tech blog, programming, software development, data engineering, GenAI, tutorials, technical insights, coding"
 ---
 
 Welcome to my tech blog where I share technical insights, programming tutorials, and development experiences.
@@ -32,6 +34,7 @@ Welcome to my tech blog where I share technical insights, programming tutorials,
   {%- endfor -%}
 </ul>
 
-{%- if site.posts == empty or site.posts.size == 0 or site.posts contains 'tech' == false -%}
+{%- assign tech_posts = site.posts | where_exp: "post", "post.categories contains 'tech'" -%}
+{%- if tech_posts.size == 0 -%}
   <p><em>No tech posts yet. Check back soon!</em></p>
 {%- endif -%}
