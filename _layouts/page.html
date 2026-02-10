@@ -2,12 +2,12 @@
 layout: default
 ---
 
-<article class="page">
+<article class="page" itemscope itemtype="http://schema.org/WebPage">
   <header class="page-header">
-    <h1 class="page-title">{{ page.title | escape }}</h1>
+    <h1 class="page-title" itemprop="name headline">{{ page.title | escape }}</h1>
   </header>
 
-  <div class="page-content">
+  <div class="page-body" itemprop="mainContentOfPage">
     {{ content }}
   </div>
 </article>

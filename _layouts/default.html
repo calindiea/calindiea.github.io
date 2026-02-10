@@ -7,7 +7,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   
   {%- seo -%}
-  
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="{{ page.url | absolute_url }}">
+
+  <!-- Open Graph Image -->
+  {%- if site.logo -%}
+  <meta property="og:image" content="{{ site.logo | absolute_url }}">
+  <meta property="og:image:alt" content="{{ site.title | escape }}">
+  {%- endif -%}
+  <meta property="og:type" content="{{ page.layout | default: 'website' }}">
+  <meta name="twitter:card" content="summary">
+
+  <!-- Reading Time -->
+  {%- assign words = content | number_of_words -%}
+  {%- assign minutes = words | divided_by: 200 -%}
+  {%- if minutes < 1 %}{% assign minutes = 1 %}{% endif -%}
+  <meta name="reading_time" content="{{ minutes }} min read">
+
+  <!-- Language -->
+  <meta property="og:locale" content="{{ page.lang | default: site.lang | default: 'en_US' }}">
+
+  <!-- SEO Meta -->
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow">
+
   <link rel="stylesheet" href="{{ "/assets/css/main.css" | relative_url }}">
   
   {%- feed_meta -%}

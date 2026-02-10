@@ -18,22 +18,34 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Calin's Blog
+title: Diea Calin
 email: your-email@example.com
-description: >- # this means to ignore newlines until "baseurl:"
-  A personal blog focusing on technology, development, and thoughts.
-  Clean, distraction-free writing in a paper-like design.
+description: >-
+  Diea Calin, a Data Engineer and Software Developer from Bucharest, Romania,
+  working with financial risk modeling, AI tools, and data systems.
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
-twitter_username: jekyllrb
-github_username:  jekyll
+url: "https://calindiea.github.io" # the base hostname & protocol for your site
+
+# Author (used by jekyll-seo-tag for structured data)
+author:
+  name: Diea Calin
+  url: https://calindiea.github.io
+
+# Logo (used by jekyll-seo-tag for structured data)
+logo: /assets/logo.png
+
+# Social links
+social:
+  name: Diea Calin
+  links:
+    - https://github.com/calindiea
+
+github_username: calindiea
 
 # Navigation
 header_pages:
   - index.markdown
-  - blog.markdown
-  - tech-blog.markdown
-  - about.markdown
+  - about/index.md
 
 # Build settings
 # theme: minima  # Disabled to use custom layouts
@@ -42,7 +54,6 @@ plugins:
   - jekyll-seo-tag
 
 # Custom settings
-author: Calin
 show_excerpts: true
 date_format: "%b %-d, %Y"
 
