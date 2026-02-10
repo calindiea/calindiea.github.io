@@ -2,7 +2,8 @@
 layout: post
 title: "Saint Augustine: The Journey from Sinner to Saint"
 date: 2026-02-10 14:30:00 +0000
-categories: [philosophy, theology, history]
+categories:
+  - life
 tags: [augustine, confessions, christianity, ancient-philosophy, autobiography]
 excerpt: "Explore the transformative journey of Augustine of Hippo, from his rebellious youth to becoming one of Christianity's most influential theologians and philosophers."
 author: "Diea Calin"
