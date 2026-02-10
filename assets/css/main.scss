@@ -153,6 +153,63 @@ body {
   color: var(--gray-light);
 }
 
+/* ─── Snapshot ─── */
+.home-snapshot {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 3rem 3.5rem;
+}
+
+.snapshot-grid {
+  display: flex;
+  gap: 2.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.snapshot-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.snapshot-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray-mid);
+}
+
+.snapshot-value {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--gray-light);
+}
+
+.snapshot-link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--gray-mid);
+  border: none;
+  transition: color 0.2s ease;
+}
+
+.snapshot-link:hover {
+  color: var(--white);
+  border: none;
+}
+
+@media (max-width: 768px) {
+  .home-snapshot {
+    padding: 0 1.5rem 2.5rem;
+  }
+
+  .snapshot-grid {
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+}
+
 /* Section heading */
 .section-label {
   max-width: 1200px;
@@ -163,6 +220,59 @@ body {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--gray-mid);
+}
+
+/* ─── Epigraph ─── */
+.epigraph-row {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 3rem 3rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.epigraph {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--gray-mid);
+  line-height: 1.65;
+  max-width: 560px;
+}
+
+.epigraph-src {
+  font-style: normal;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.epigraph-btn {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-mid);
+  border: 1px solid var(--blue-accent);
+  border-radius: 6px;
+  color: var(--gray-mid);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.epigraph-btn:hover {
+  color: var(--white);
+  border-color: var(--gray-mid);
+}
+
+@media (max-width: 768px) {
+  .epigraph-row {
+    padding: 0 1.5rem 2.5rem;
+  }
 }
 
 /* ─── Post Grid ─── */
