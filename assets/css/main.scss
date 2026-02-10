@@ -153,11 +153,24 @@ body {
   color: var(--gray-light);
 }
 
-/* ─── Snapshot ─── */
-.home-snapshot {
+/* ─── Home Body (main + sidebar) ─── */
+.home-body {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 3rem 3.5rem;
+  padding: 0 3rem 5rem;
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 3rem;
+  align-items: start;
+}
+
+.home-main {
+  min-width: 0;
+}
+
+/* ─── Snapshot ─── */
+.home-snapshot {
+  padding-bottom: 2.5rem;
 }
 
 .snapshot-grid {
@@ -199,22 +212,9 @@ body {
   border: none;
 }
 
-@media (max-width: 768px) {
-  .home-snapshot {
-    padding: 0 1.5rem 2.5rem;
-  }
-
-  .snapshot-grid {
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-}
-
 /* Section heading */
 .section-label {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 3rem 2rem;
+  padding-bottom: 1.5rem;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -222,37 +222,67 @@ body {
   color: var(--gray-mid);
 }
 
-/* ─── Epigraph ─── */
-.epigraph-row {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 3rem 3rem;
+/* ─── Post list (single column in main) ─── */
+.post-list-main {
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
+/* ─── Sidebar ─── */
+.home-sidebar {
+  position: sticky;
+  top: 5rem;
+}
+
+.sidebar-widget {
+  background: var(--blue-dark);
+  border: 1px solid var(--blue-mid);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--blue-mid);
+}
+
+.widget-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray-mid);
+}
+
+/* ─── Epigraph (inside sidebar) ─── */
 .epigraph {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 300;
   font-style: italic;
-  color: var(--gray-mid);
-  line-height: 1.65;
-  max-width: 560px;
+  color: var(--gray-light);
+  line-height: 1.7;
 }
 
 .epigraph-src {
   font-style: normal;
   font-weight: 400;
-  white-space: nowrap;
+  color: var(--gray-mid);
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
 }
 
 .epigraph-btn {
   flex-shrink: 0;
-  margin-top: 0.15rem;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -269,20 +299,30 @@ body {
   border-color: var(--gray-mid);
 }
 
-@media (max-width: 768px) {
-  .epigraph-row {
-    padding: 0 1.5rem 2.5rem;
+/* ─── Sidebar responsive ─── */
+@media (max-width: 900px) {
+  .home-body {
+    grid-template-columns: 1fr;
+    padding: 0 1.5rem 3rem;
+  }
+
+  .home-sidebar {
+    position: static;
+    order: -1;
+  }
+
+  .snapshot-grid {
+    flex-direction: column;
+    gap: 1.25rem;
   }
 }
 
 /* ─── Post Grid ─── */
-.post-grid {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 3rem 5rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 1.5rem;
+.post-grid,
+.post-list-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 .post-card {
@@ -721,13 +761,8 @@ blockquote {
     font-size: 2.25rem;
   }
 
-  .section-label {
-    padding: 0 1.5rem 1.5rem;
-  }
-
   .post-grid {
     padding: 0 1.5rem 3rem;
-    grid-template-columns: 1fr;
   }
 
   .post {

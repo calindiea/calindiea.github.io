@@ -10,80 +10,89 @@ layout: default
     </div>
   </div>
 
-  <div class="home-snapshot">
-    <div class="snapshot-grid">
-      <div class="snapshot-item">
-        <span class="snapshot-label">Currently</span>
-        <span class="snapshot-value">Data Engineer at Tremend</span>
-      </div>
-      <div class="snapshot-item">
-        <span class="snapshot-label">Working with</span>
-        <span class="snapshot-value">Databricks · Python · Azure · Oracle</span>
-      </div>
-      <div class="snapshot-item">
-        <span class="snapshot-label">Interests</span>
-        <span class="snapshot-value">Financial computing · GenAI · Philosophy</span>
-      </div>
-    </div>
-    <a href="{{ "/about/" | relative_url }}" class="snapshot-link">More about me →</a>
-  </div>
-
-  {%- if site.data.quotes.size > 0 -%}
-    <div class="epigraph-row">
-      <p class="epigraph" id="epigraph"></p>
-      <button class="epigraph-btn" id="epigraph-btn" type="button" aria-label="New quote" title="New quote">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/>
-          <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/>
-        </svg>
-      </button>
-    </div>
-    <script>
-      (function () {
-        var q = {{ site.data.quotes | jsonify }};
-        var el = document.getElementById('epigraph');
-        var btn = document.getElementById('epigraph-btn');
-        var last = -1;
-        function show() {
-          var idx;
-          do { idx = Math.floor(Math.random() * q.length); } while (idx === last && q.length > 1);
-          last = idx;
-          el.innerHTML = '"' + q[idx].text + '"' +
-            '<span class="epigraph-src"> — ' + q[idx].author + '</span>';
-        }
-        show();
-        btn.addEventListener('click', show);
-      })();
-    </script>
-  {%- endif -%}
-
-  {%- if site.posts.size > 0 -%}
-    <div class="section-label">Recent Posts</div>
-    <div class="post-grid">
-      {%- for post in site.posts limit: 6 -%}
-        <div class="post-card">
-          {%- if post.categories.size > 0 -%}
-            <div class="post-category">{{ post.categories | join: " · " }}</div>
-          {%- endif -%}
-          <h3 class="post-title">
-            <a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a>
-          </h3>
-          {%- if post.excerpt -%}
-            <div class="post-excerpt">
-              {{ post.excerpt | strip_html | truncatewords: 25 }}
-            </div>
-          {%- endif -%}
-          <div class="post-footer">
-            <span class="post-meta">
-              <time datetime="{{ post.date | date_to_xmlschema }}">
-                {{ post.date | date: site.date_format | default: "%b %-d, %Y" }}
-              </time>
-            </span>
-            <a href="{{ post.url | relative_url }}" class="post-read">Read →</a>
+  <div class="home-body">
+    <div class="home-main">
+      <div class="home-snapshot">
+        <div class="snapshot-grid">
+          <div class="snapshot-item">
+            <span class="snapshot-label">Currently</span>
+            <span class="snapshot-value">Data Engineer at Tremend</span>
+          </div>
+          <div class="snapshot-item">
+            <span class="snapshot-label">Working with</span>
+            <span class="snapshot-value">Databricks · Python · Azure · Oracle</span>
+          </div>
+          <div class="snapshot-item">
+            <span class="snapshot-label">Interests</span>
+            <span class="snapshot-value">Financial computing · GenAI · Philosophy</span>
           </div>
         </div>
-      {%- endfor -%}
+        <a href="{{ "/about/" | relative_url }}" class="snapshot-link">More about me →</a>
+      </div>
+
+      {%- if site.posts.size > 0 -%}
+        <div class="section-label">Recent Posts</div>
+        <div class="post-list-main">
+          {%- for post in site.posts limit: 6 -%}
+            <div class="post-card">
+              {%- if post.categories.size > 0 -%}
+                <div class="post-category">{{ post.categories | join: " · " }}</div>
+              {%- endif -%}
+              <h3 class="post-title">
+                <a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a>
+              </h3>
+              {%- if post.excerpt -%}
+                <div class="post-excerpt">
+                  {{ post.excerpt | strip_html | truncatewords: 25 }}
+                </div>
+              {%- endif -%}
+              <div class="post-footer">
+                <span class="post-meta">
+                  <time datetime="{{ post.date | date_to_xmlschema }}">
+                    {{ post.date | date: site.date_format | default: "%b %-d, %Y" }}
+                  </time>
+                </span>
+                <a href="{{ post.url | relative_url }}" class="post-read">Read →</a>
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
     </div>
-  {%- endif -%}
+
+    <aside class="home-sidebar">
+      {%- if site.data.quotes.size > 0 -%}
+        <div class="sidebar-widget">
+          <div class="widget-header">
+            <span class="widget-label">Quote</span>
+            <button class="epigraph-btn" id="epigraph-btn" type="button" aria-label="New quote" title="New quote">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/>
+                <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/>
+              </svg>
+            </button>
+          </div>
+          <p class="epigraph" id="epigraph"></p>
+        </div>
+        <script>
+          (function () {
+            var q = {{ site.data.quotes | jsonify }};
+            var el = document.getElementById('epigraph');
+            var btn = document.getElementById('epigraph-btn');
+            var last = -1;
+            function show() {
+              var idx;
+              do { idx = Math.floor(Math.random() * q.length); } while (idx === last && q.length > 1);
+              last = idx;
+              el.innerHTML = '"' + q[idx].text + '"' +
+                '<span class="epigraph-src"> — ' + q[idx].author + '</span>';
+            }
+            show();
+            btn.addEventListener('click', show);
+          })();
+        </script>
+      {%- endif -%}
+    </aside>
+  </div>
 </div>
