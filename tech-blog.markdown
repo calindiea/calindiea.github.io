@@ -8,11 +8,11 @@ keywords: "tech blog, programming, software development, data engineering, GenAI
 
 Welcome to my tech blog where I share technical insights, programming tutorials, and development experiences.
 
-{%- assign tech_posts = site.posts | where_exp: "post", "post.categories contains 'tech' or post.categories contains 'programming' or post.categories contains 'development'" -%}
+{% assign tech_posts = site.posts | where_exp: "post", "post.categories contains 'tech' or post.categories contains 'programming' or post.categories contains 'development'" %}
 
-{%- if tech_posts.size > 0 -%}
+{% if tech_posts.size > 0 %}
 <ul class="post-list">
-  {%- for post in tech_posts -%}
+  {% for post in tech_posts %}
   <li class="post-list-item">
     <h3 class="post-title">
       <a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a>
@@ -21,20 +21,21 @@ Welcome to my tech blog where I share technical insights, programming tutorials,
       <time datetime="{{ post.date | date_to_xmlschema }}">
         {{ post.date | date: site.date_format | default: "%b %-d, %Y" }}
       </time>
-      {%- if post.categories.size > 0 -%}
+      {% if post.categories.size > 0 %}
       • {{ post.categories | join: ", " }}
-      {%- endif -%}
+      {% endif %}
     </div>
-    {%- if post.excerpt -%}
+    {% if post.excerpt %}
     <div class="post-excerpt">
       {{ post.excerpt | strip_html | truncatewords: 30 }}
       <a href="{{ post.url | relative_url }}">Read more →</a>
     </div>
-    {%- endif -%}
+    {% endif %}
   </li>
-  {%- endfor -%}
+  {% endfor %}
 </ul>
-{%- else -%}
+{% else %}
 
 *No tech posts yet. Check back soon!*
-{%- endif -%}
+
+{% endif %}
