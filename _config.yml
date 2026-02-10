@@ -25,7 +25,7 @@ description: >- # this means to ignore newlines until "baseurl:"
   Specializing in financial risk modeling, GenAI solutions, and scalable data pipelines.
   Sharing insights on technology, development, and professional growth.
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "https://calindiea.github.io" # the base hostname & protocol for your site
+url: "" # the base hostname & protocol for your site
 twitter_username: # Add your Twitter if you have one
 github_username: calindiea
 
@@ -72,6 +72,7 @@ birthdate: 1999-08-24
 location: Bucharest, Romania
 show_excerpts: true
 date_format: "%b %-d, %Y"
+future: true
 
 # Exclude from processing.
 # The following items will not be processed, by default.
