@@ -97,6 +97,12 @@ body {
   transition: color 0.3s ease;
 }
 
+.site-title .site-logo {
+  width: 24px;
+  height: 24px;
+  margin-right: 0.5rem;
+}
+
 .nav-links {
   display: flex;
   gap: 2rem;
