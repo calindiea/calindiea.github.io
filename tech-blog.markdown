@@ -32,7 +32,6 @@ Welcome to my tech blog where I share technical insights, programming tutorials,
     </div>
     {% endif %}
   </li>
-  {% endif %}
   {% endfor %}
 </ul>
 {% else %}
