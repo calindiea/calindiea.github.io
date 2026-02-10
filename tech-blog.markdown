@@ -8,9 +8,11 @@ keywords: "tech blog, programming, software development, data engineering, GenAI
 
 Welcome to my tech blog where I share technical insights, programming tutorials, and development experiences.
 
-<ul class="post-list">
-  {%- for post in site.posts -%}
-    {%- if post.categories contains 'tech' -%}
+{%- assign tech_posts = site.posts | where_exp: "post", "post.categories contains 'tech' or post.categories contains 'programming' or post.categories contains 'development'" -%}
+
+{%- if tech_posts.size > 0 -%}
+  <ul class="post-list">
+    {%- for post in tech_posts -%}
       <li class="post-list-item">
         <h3 class="post-title">
           <a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a>
@@ -30,11 +32,8 @@ Welcome to my tech blog where I share technical insights, programming tutorials,
           </div>
         {%- endif -%}
       </li>
-    {%- endif -%}
-  {%- endfor -%}
-</ul>
-
-{%- assign tech_posts = site.posts | where_exp: "post", "post.categories contains 'tech'" -%}
-{%- if tech_posts.size == 0 -%}
+    {%- endfor -%}
+  </ul>
+{%- else -%}
   <p><em>No tech posts yet. Check back soon!</em></p>
 {%- endif -%}
