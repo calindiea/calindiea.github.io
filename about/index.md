@@ -11,7 +11,11 @@ I'm a **Software Engineer** based in **Bucharest, Romania**, currently 26 years 
 
 ## 🚀 What I Do
 
-I work as a **Data Engineer** at **Tremend Software Consulting**, focusing on financial risk modeling and data analytics. I build data pipelines and develop AI solutions for clients.
+I currently work as a Data Engineer, designing Databricks-based solutions for end-to-end batch ingestion from files and databases. I implement ELT pipelines using the Medallion Architecture, ingesting data into Bronze, working with business stakeholders to define data and validation rules, and designing transformations that serve the Gold layer.
+
+Before moving into data, I worked as a Web Developer, starting with PHP on websites and web modules for healthcare, transport, and financial systems, then expanding into Node.js and React. I later moved into GenAI, where I built RAG applications for document understanding and coding assistants, including custom chunking mechanisms. These systems initially used Oracle Autonomous Database as a vector store and later expanded to Azure and Google Cloud, giving me solid hands-on experience with cloud platforms and services.
+
+I eventually transitioned from AI to what enables it—data. My background across web, AI, cloud, and data allows me to work comfortably as a consultant with diverse clients and technologies. While I may not always have the immediate answer, I bring ownership, adaptability, and a strong willingness to learn, and I’m comfortable proposing solutions and growing regardless of the tech stack.
 
 ### Current Role: Data Engineer at Tremend
 *July 2021 - Present*
