@@ -1,2 +1,0 @@
-# diea-calin
-personal blog

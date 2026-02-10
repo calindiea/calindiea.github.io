@@ -18,61 +18,19 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Diea Calin
-email: contact@calindiea.com
+title: Calin Diea
+email: calin.diea@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
-  Data Engineer & Software Developer from Bucharest, Romania. 
-  Specializing in financial risk modeling, GenAI solutions, and scalable data pipelines.
-  Sharing insights on technology, development, and professional growth.
-baseurl: "/caldiea-blog" # the subpath of your site, e.g. /blog
-url: "https://calindiea.github.io" # the base hostname & protocol for your site
-twitter_username: # Add your Twitter if you have one
-github_username: calindiea
-
-# SEO Settings
-lang: en_US
-tagline: "Data Engineering & Software Development Insights"
-logo: /assets/logo.png
-social:
-  name: Diea Calin
-  links:
-    - https://github.com/calindiea
-    # - https://twitter.com/yourusername
-    # - https://www.linkedin.com/in/yourprofile
-
-# SEO Author defaults
-defaults:
-  - scope:
-      path: ""
-      type: "posts"
-    values:
-      author: "Diea Calin"
-      image: /assets/default-post-image.jpg  # Add a default image for posts
-      
-# Google Analytics (uncomment and add your ID when ready)
-# google_analytics: UA-XXXXXXXX-X
-
-# Navigation
-header_pages:
-  - index.markdown
-  - blog.markdown
-  - tech-blog.markdown
-  - about.markdown
+  Calin Diea's personal website.
+baseurl: "/calindiea.github.io" # the subpath of your site, e.g. /blog
+url: "https://calindiea.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+twitter_username: calindiea
+github_username:  calindiea
 
 # Build settings
-# theme: minima  # Disabled to use custom layouts
+theme: minima
 plugins:
   - jekyll-feed
-  - jekyll-seo-tag
-  - jekyll-sitemap
-
-# Custom settings
-author: Diea Calin
-birthdate: 1999-08-24
-location: Bucharest, Romania
-show_excerpts: true
-date_format: "%b %-d, %Y"
-future: true
 
 # Exclude from processing.
 # The following items will not be processed, by default.

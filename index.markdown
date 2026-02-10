@@ -1,6 +1,6 @@
 ---
+# Feel free to add content and custom Front Matter to this file.
+# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
+
 layout: home
-title: Home
-description: "Diea Calin's personal website - Data Engineer & Software Developer sharing insights on technology, development, philosophy, and professional growth."
-keywords: "Diea Calin, data engineer, software developer, blog, tech blog, GenAI, data analytics, philosophy"
 ---
