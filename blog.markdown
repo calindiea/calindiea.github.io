@@ -11,7 +11,6 @@ Welcome to my blog where I share thoughts, experiences, and insights on various 
 {% if site.posts.size > 0 %}
 <ul class="post-list">
   {% for post in site.posts %}
-  {% unless post.categories contains "tech" or post.categories contains "programming" or post.categories contains "development" %}
   <li class="post-list-item">
     <h3 class="post-title">
       <a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a>
@@ -31,7 +30,6 @@ Welcome to my blog where I share thoughts, experiences, and insights on various 
     </div>
     {% endif %}
   </li>
-  {% endunless %}
   {% endfor %}
 </ul>
 {% else %}
