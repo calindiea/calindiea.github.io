@@ -41,6 +41,9 @@ social:
 
 github_username: calindiea
 
+# Google Search Console
+google_site_verification: m_1ZS6Jv5y0DktlJNHVW7cRqS7_DQQhFxNvZemPYQKw
+
 # Navigation
 header_pages:
   - index.markdown

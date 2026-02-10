@@ -11,11 +11,12 @@ I'm a **Software Engineer** based in **Bucharest, Romania**, currently 26 years 
 
 ## 🚀 What I Do
 
-I currently work as a Data Engineer, designing Databricks-based solutions for end-to-end batch ingestion from files and databases. I implement ELT pipelines using the Medallion Architecture, ingesting data into Bronze, working with business stakeholders to define data and validation rules, and designing transformations that serve the Gold layer.
+I currently work as a **Data Engineer**, designing Databricks-based solutions for end-to-end batch ingestion from files and databases. I implement **ELT pipelines** using the **Medallion Architecture** (Bronze → Silver → Gold), collaborate with business stakeholders to define data and validation rules, and design transformations that serve the Gold/analytics layer.
 
-Before moving into data, I worked as a Web Developer, starting with PHP on websites and web modules for healthcare, transport, and financial systems, then expanding into Node.js and React. I later moved into GenAI, where I built RAG applications for document understanding and coding assistants, including custom chunking mechanisms. These systems initially used Oracle Autonomous Database as a vector store and later expanded to Azure and Google Cloud, giving me solid hands-on experience with cloud platforms and services.
+Before moving into data, I worked as a **Web Developer** — starting with **PHP** for websites and web modules in healthcare, transport, and finance, then expanding into **Node.js** and **React**. I later moved into **GenAI**, building **RAG** applications for document understanding and coding assistants (including custom chunking mechanisms). These systems initially used **Oracle Autonomous Database** as a vector store and later expanded to **Azure** and **Google Cloud**, giving me hands-on experience with multi-cloud AI deployments.
 
-I eventually transitioned from AI to what enables it—data. My background across web, AI, cloud, and data allows me to work comfortably as a consultant with diverse clients and technologies. While I may not always have the immediate answer, I bring ownership, adaptability, and a strong willingness to learn, and I’m comfortable proposing solutions and growing regardless of the tech stack.
+I transitioned from AI to what enables it — **data**. My cross-domain background in web, AI, cloud, and data lets me consult with diverse clients and technologies. I bring **ownership**, **adaptability**, and a strong willingness to learn, and I’m comfortable proposing solutions and growing regardless of the tech stack.
+
 
 ### Current Role: Data Engineer at Tremend
 *July 2021 - Present*
