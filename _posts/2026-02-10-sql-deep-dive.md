@@ -2,7 +2,7 @@
 layout: post
 title: "Oracle SQL notes #1"
 date: 2026-02-10 10:00:00 +0200
-categories: technology, notes
+categories: [technology, notes]
 ---
 
 

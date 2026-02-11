@@ -2,7 +2,7 @@
 layout: post
 title: "MongoDB Data Modeling notes #1"
 date: 2026-02-10 12:00:00 +0200
-categories: technology, notes
+categories: [technology, notes]
 ---
 
 ## The Core Principle
