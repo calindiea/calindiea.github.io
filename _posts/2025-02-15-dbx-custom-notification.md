@@ -13,6 +13,8 @@ As I needed for my own use to send more rich information alerts, such as informi
 
 ## Solution
 
+The full implementation is available on [GitHub](https://github.com/calindiea/databricks-notes/tree/main/databricks-smtp-notification).
+
 ### Setting Up Secrets
 
 I will be using my own personal Gmail as an SMTP server. I have already created an application token, so to follow best practices, I will set up a Secret in Databricks.
@@ -21,7 +23,7 @@ I will be using my own personal Gmail as an SMTP server. I have already created 
 
 Now, I will go to my terminal and using `databricks-cli` I will set up the value for my scope.
 
-![Set up secret value](/assets/imgs/Pasted_image_20260215134621.png)
+![Set up secret value](/assets/imgs/Pasted%20image%2020260215134621.png)
 
 Next, I will verify that my secret is accessible.
 
@@ -83,42 +85,42 @@ dbutils.jobs.taskValues.set(
 
 I will now set up the Job pipeline. It might be redundant to have three tasks, but this is for showcasing purposes. We first define the `ingest_data` task which will trigger the ingestion notebook that will set the variable value to either `True` or `False`. I will then use a Conditional Task to fetch this variable value, and based on this, I will trigger (or not) a new notebook that will send me the custom notification.
 
-![Job pipeline configuration](/assets/imgs/Pasted_image_20260215142928.png)
+![Job pipeline configuration](/assets/imgs/Pasted%20image%2020260215142928.png)
 
-![Conditional task setup](/assets/imgs/Pasted_image_20260215143020.png)
+![Conditional task setup](/assets/imgs/Pasted%20image%2020260215143020.png)
 
 ### Notification Logic
 
 Now, the Notification notebook will use simple logic. I will use a new table named `notification_metadata` where I will store the emails of users who should be notified. I won't make it more advanced, but obviously I could add more information to have more control over what email addresses can do what, sort of a simple user-based access control system. For this purpose, the list of emails should be enough.
 
-![Notification metadata table](/assets/imgs/Pasted_image_20260215145112.png)
+![Notification metadata table](/assets/imgs/Pasted%20image%2020260215145112.png)
 
 I will use AI to create a nice email HTML body, then read the `INVALID_TABLE` and create some statistics.
 
 Ingestion timestamp, filename, validation error, and count of errors should be enough for a short yet informative message.
 
-![Email statistics](/assets/imgs/Pasted_image_20260215145506.png)
+![Email statistics](/assets/imgs/Pasted%20image%2020260215145506.png)
 
 I have also put my email as a secret so I can share my code without exposing my email address. This is why you will see REDACTED.
 
-![Email configuration](/assets/imgs/Pasted_image_20260215150316.png)
+![Email configuration](/assets/imgs/Pasted%20image%2020260215150316.png)
 
 ### Enabling AutoLoader
 
 Great! One more step. Let's turn on AutoLoader so the pipeline will execute automatically when new files are uploaded.
 
-![AutoLoader configuration](/assets/imgs/Pasted_image_20260215150448.png)
+![AutoLoader configuration](/assets/imgs/Pasted%20image%2020260215150448.png)
 
 ### Testing the Pipeline
 
 Now let's upload data that has some errors on purpose.
 
-![Upload test data](/assets/imgs/Pasted_image_20260215150753.png)
+![Upload test data](/assets/imgs/Pasted%20image%2020260215150753.png)
 
 Great! The job executed successfully.
 
-![Job execution output](/assets/imgs/Pasted_image_20260215154329.png)
+![Job execution output](/assets/imgs/Pasted%20image%2020260215154329.png)
 
 And here is my nicely formatted output sent to my email:
 
-![Email notification output](/assets/imgs/Pasted_image_20260215154358.png)
+![Email notification output](/assets/imgs/Pasted%20image%2020260215154358.png)
