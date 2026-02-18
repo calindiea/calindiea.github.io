@@ -440,6 +440,14 @@ body {
   font-weight: 300;
 }
 
+.post-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.5rem auto;
+  border-radius: 4px;
+}
+
 /* ─── Page Layout ─── */
 .page-wrapper {
   width: 100%;
@@ -466,6 +474,14 @@ body {
   padding: 0 2.5rem 4rem;
   color: var(--gray-light);
   font-weight: 300;
+}
+
+.page-body img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.5rem auto;
+  border-radius: 4px;
 }
 
 /* ─── Typography ─── */
