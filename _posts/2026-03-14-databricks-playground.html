@@ -1,0 +1,1454 @@
+---
+layout: post
+title: "Databricks Internals — Interactive Playground"
+date: 2026-03-14
+categories: [technology, notes]
+---
+
+<style>
+/* ── RESET & BASE (scoped to post) ─────────────────────── */
+.dbx-playground *,
+.dbx-playground *::before,
+.dbx-playground *::after { box-sizing: border-box; margin: 0; padding: 0 }
+.dbx-playground {
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2333;--border:#30363d;
+  --text:#c9d1d9;--text-dim:#8b949e;--accent:#58a6ff;--accent2:#3fb950;
+  --warn:#d29922;--danger:#f85149;--purple:#bc8cff;--cyan:#39d2c0;
+  --orange:#ff8c42;--font-mono:'Cascadia Code','Fira Code','JetBrains Mono',monospace;
+  --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  --radius:8px;--transition:0.25s ease;
+  font-family:var(--font-sans);background:var(--bg);color:var(--text);
+  line-height:1.6;overflow-x:hidden;border-radius:var(--radius);
+  padding:0;margin:1.5rem 0;font-size:14px;
+}
+.dbx-playground h1,.dbx-playground h2,.dbx-playground h3,.dbx-playground h4{color:#e6edf3;font-weight:600}
+.dbx-playground a{color:var(--accent);text-decoration:none}
+
+/* ── LAYOUT ────────────────────────────────────────────── */
+.dbx-playground .app-header{background:linear-gradient(135deg,#0d1117 0%,#161b22 100%);
+  border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;
+  align-items:center;gap:1rem;position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(12px);border-radius:var(--radius) var(--radius) 0 0}
+.dbx-playground .app-header h1{font-size:1.3rem;background:linear-gradient(90deg,var(--accent),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.dbx-playground .app-header .badge{font-size:.7rem;background:var(--accent);color:#000;
+  padding:2px 8px;border-radius:12px;font-weight:700}
+
+/* ── TABS ──────────────────────────────────────────────── */
+.dbx-playground .tab-bar{display:flex;gap:2px;padding:0 2rem;background:var(--surface);
+  border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:thin}
+.dbx-playground .tab-btn{padding:.75rem 1.2rem;background:transparent;border:none;
+  color:var(--text-dim);cursor:pointer;font-size:.85rem;font-family:var(--font-sans);
+  white-space:nowrap;border-bottom:2px solid transparent;transition:var(--transition)}
+.dbx-playground .tab-btn:hover{color:var(--text);background:rgba(88,166,255,.05)}
+.dbx-playground .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);
+  background:rgba(88,166,255,.08)}
+.dbx-playground .tab-btn .tab-num{display:inline-block;background:var(--border);color:var(--text-dim);
+  width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%;
+  font-size:.7rem;margin-right:6px}
+.dbx-playground .tab-btn.active .tab-num{background:var(--accent);color:#000}
+
+/* ── PANEL ─────────────────────────────────────────────── */
+.dbx-playground .tab-panel{display:none;padding:2rem;max-width:1200px;margin:0 auto;
+  animation:dbxFadeIn .3s ease}
+.dbx-playground .tab-panel.active{display:block}
+@keyframes dbxFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.dbx-playground .section-header{margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.dbx-playground .section-header h2{font-size:1.5rem;margin-bottom:.25rem}
+.dbx-playground .section-header p{color:var(--text-dim);font-size:.9rem}
+
+/* ── CARDS ─────────────────────────────────────────────── */
+.dbx-playground .card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem}
+.dbx-playground .card h3{font-size:1rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}
+.dbx-playground .card h3 .icon{font-size:1.1rem}
+
+.dbx-playground .concept-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+@media(max-width:800px){.dbx-playground .concept-grid{grid-template-columns:1fr}}
+
+.dbx-playground .info-box{padding:1rem;border-radius:var(--radius);font-size:.85rem}
+.dbx-playground .info-box.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--accent2)}
+.dbx-playground .info-box.warn{background:rgba(210,153,34,.08);border-left:3px solid var(--warn)}
+.dbx-playground .info-box.danger{background:rgba(248,81,73,.08);border-left:3px solid var(--danger)}
+.dbx-playground .info-box.info{background:rgba(88,166,255,.08);border-left:3px solid var(--accent)}
+
+/* ── CONTROLS ──────────────────────────────────────────── */
+.dbx-playground .controls{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;
+  margin-bottom:1rem;padding:1rem;background:var(--surface2);
+  border-radius:var(--radius);border:1px solid var(--border)}
+.dbx-playground .controls label{font-size:.8rem;color:var(--text-dim);display:flex;
+  flex-direction:column;gap:4px}
+.dbx-playground .controls select,.dbx-playground .controls input[type=range],.dbx-playground .controls input[type=number]{
+  background:var(--bg);border:1px solid var(--border);color:var(--text);
+  padding:6px 10px;border-radius:4px;font-size:.8rem;font-family:var(--font-sans)}
+.dbx-playground .controls input[type=range]{padding:4px 0;width:140px;accent-color:var(--accent)}
+.dbx-playground .controls select{min-width:120px}
+.dbx-playground .btn{padding:8px 16px;border:1px solid var(--border);background:var(--surface);
+  color:var(--text);border-radius:4px;cursor:pointer;font-size:.8rem;
+  font-family:var(--font-sans);transition:var(--transition)}
+.dbx-playground .btn:hover{background:var(--surface2);border-color:var(--accent)}
+.dbx-playground .btn.primary{background:var(--accent);color:#000;border-color:var(--accent)}
+.dbx-playground .btn.primary:hover{background:#79c0ff}
+
+/* ── VIS CANVAS ────────────────────────────────────────── */
+.dbx-playground .vis-container{position:relative;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;margin-bottom:1rem}
+.dbx-playground .vis-container canvas{display:block;width:100%;height:auto}
+.dbx-playground .vis-container svg{display:block;width:100%}
+
+/* ── LEGEND ────────────────────────────────────────────── */
+.dbx-playground .legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.75rem;
+  padding:.5rem 1rem;background:var(--surface2);border-radius:var(--radius);
+  margin-bottom:1rem}
+.dbx-playground .legend-item{display:flex;align-items:center;gap:4px}
+.dbx-playground .legend-swatch{width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,.1)}
+
+/* ── TRANSACTION LOG ───────────────────────────────────── */
+.dbx-playground .txn-log{font-family:var(--font-mono);font-size:.75rem;max-height:280px;
+  overflow-y:auto;background:#0a0e14;border:1px solid var(--border);
+  border-radius:var(--radius);padding:.75rem;scrollbar-width:thin}
+.dbx-playground .txn-log .entry{padding:4px 0;border-bottom:1px solid rgba(48,54,61,.5);
+  animation:dbxLogSlide .3s ease}
+.dbx-playground .txn-log .entry:last-child{border-bottom:none}
+.dbx-playground .txn-entry-num{color:var(--text-dim);margin-right:.5rem}
+.dbx-playground .txn-op{color:var(--accent);font-weight:600}
+.dbx-playground .txn-detail{color:var(--text-dim)}
+@keyframes dbxLogSlide{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── METRIC BADGES ─────────────────────────────────────── */
+.dbx-playground .metrics{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}
+.dbx-playground .metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:.75rem 1rem;text-align:center;min-width:100px}
+.dbx-playground .metric .val{font-size:1.5rem;font-weight:700;color:var(--accent)}
+.dbx-playground .metric .lbl{font-size:.7rem;color:var(--text-dim);margin-top:2px}
+
+/* ── COMPARISON ────────────────────────────────────────── */
+.dbx-playground .comparison{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.dbx-playground .comparison .side{border:1px solid var(--border);border-radius:var(--radius);
+  padding:1rem;background:var(--surface)}
+.dbx-playground .comparison .side h4{font-size:.85rem;margin-bottom:.75rem;text-align:center}
+.dbx-playground .comparison .side.before h4{color:var(--danger)}
+.dbx-playground .comparison .side.after h4{color:var(--accent2)}
+@media(max-width:700px){.dbx-playground .comparison{grid-template-columns:1fr}}
+
+/* ── PIPELINE VIS ──────────────────────────────────────── */
+.dbx-playground .pipeline{display:flex;align-items:center;gap:0;overflow-x:auto;
+  padding:1rem;margin-bottom:1rem}
+.dbx-playground .pipe-stage{padding:1rem 1.5rem;border-radius:var(--radius);text-align:center;
+  min-width:140px;position:relative;font-size:.8rem}
+.dbx-playground .pipe-arrow{width:40px;text-align:center;color:var(--text-dim);font-size:1.2rem;flex-shrink:0}
+.dbx-playground .pipe-stage.bronze{background:rgba(205,127,50,.15);border:1px solid #cd7f32;color:#e0a060}
+.dbx-playground .pipe-stage.silver{background:rgba(192,192,192,.1);border:1px solid #aaa;color:#ccc}
+.dbx-playground .pipe-stage.gold{background:rgba(255,215,0,.1);border:1px solid #ffd700;color:#ffe066}
+
+/* ── SCROLLBAR ─────────────────────────────────────────── */
+.dbx-playground ::-webkit-scrollbar{width:6px;height:6px}
+.dbx-playground ::-webkit-scrollbar-track{background:var(--bg)}
+.dbx-playground ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.dbx-playground ::-webkit-scrollbar-thumb:hover{background:var(--text-dim)}
+
+/* ── TRADEOFFS TABLE ───────────────────────────────────── */
+.dbx-playground .tradeoff-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:.75rem}
+.dbx-playground .tradeoff-table th{text-align:left;padding:8px 12px;background:var(--surface2);
+  border:1px solid var(--border);color:var(--accent);font-weight:600}
+.dbx-playground .tradeoff-table td{padding:8px 12px;border:1px solid var(--border);color:var(--text)}
+.dbx-playground .tradeoff-table tr:nth-child(even) td{background:rgba(22,27,34,.5)}
+
+/* ── FILE BLOCK GRID ───────────────────────────────────── */
+.dbx-playground .file-grid{display:flex;flex-wrap:wrap;gap:6px;padding:.5rem}
+.dbx-playground .file-block{width:40px;height:40px;border-radius:4px;display:flex;align-items:center;
+  justify-content:center;font-size:.6rem;font-family:var(--font-mono);
+  transition:all .4s ease;cursor:default;position:relative;border:1px solid transparent}
+.dbx-playground .file-block.scanned{background:rgba(88,166,255,.25);border-color:var(--accent);
+  box-shadow:0 0 8px rgba(88,166,255,.3)}
+.dbx-playground .file-block.skipped{background:rgba(48,54,61,.3);border-color:var(--border);opacity:.4}
+.dbx-playground .file-block.highlight{background:rgba(63,185,80,.25);border-color:var(--accent2);
+  box-shadow:0 0 8px rgba(63,185,80,.3)}
+.dbx-playground .file-block.pruned{background:rgba(248,81,73,.15);border-color:rgba(248,81,73,.3)}
+
+/* tooltip */
+.dbx-playground .file-block .tt{display:none;position:absolute;bottom:110%;left:50%;transform:translateX(-50%);
+  background:#1c2333;border:1px solid var(--border);padding:6px 10px;border-radius:4px;
+  font-size:.65rem;white-space:nowrap;z-index:10;color:var(--text);pointer-events:none}
+.dbx-playground .file-block:hover .tt{display:block}
+
+/* Pulse animation for scanned files */
+@keyframes dbxPulse{0%{box-shadow:0 0 0 0 rgba(88,166,255,.4)}70%{box-shadow:0 0 0 8px rgba(88,166,255,0)}100%{box-shadow:0 0 0 0 rgba(88,166,255,0)}}
+.dbx-playground .file-block.scanning{animation:dbxPulse .6s ease-out}
+
+/* ── DLT expectation badges ────────────────────────────── */
+.dbx-playground .expect-badge{display:inline-block;padding:2px 8px;border-radius:10px;
+  font-size:.7rem;font-weight:600;margin:2px}
+.dbx-playground .expect-badge.pass{background:rgba(63,185,80,.15);color:var(--accent2)}
+.dbx-playground .expect-badge.warn{background:rgba(210,153,34,.15);color:var(--warn)}
+.dbx-playground .expect-badge.fail{background:rgba(248,81,73,.15);color:var(--danger)}
+</style>
+
+<div class="dbx-playground">
+
+<!-- HEADER -->
+<header class="app-header">
+  <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,2 26,8 26,20 14,26 2,20 2,8" fill="none" stroke="#58a6ff" stroke-width="1.5"/><polygon points="14,6 22,10 22,18 14,22 6,18 6,10" fill="rgba(88,166,255,.15)" stroke="#58a6ff" stroke-width="1"/></svg>
+  <h1>Databricks Internals — Interactive Playground</h1>
+  <span class="badge">Cert Prep</span>
+</header>
+
+<!-- TAB BAR -->
+<nav class="tab-bar" id="tabBar">
+  <button class="tab-btn active" data-tab="delta"><span class="tab-num">1</span>Delta Lake Internals</button>
+  <button class="tab-btn" data-tab="partition"><span class="tab-num">2</span>Partitioning</button>
+  <button class="tab-btn" data-tab="zorder"><span class="tab-num">3</span>Z-Order</button>
+  <button class="tab-btn" data-tab="liquid"><span class="tab-num">4</span>Liquid Clustering</button>
+  <button class="tab-btn" data-tab="dlt"><span class="tab-num">5</span>DLT Architecture</button>
+  <button class="tab-btn" data-tab="maintain"><span class="tab-num">6</span>OPTIMIZE / VACUUM / ANALYZE</button>
+</nav>
+
+<!-- 1 — DELTA LAKE INTERNALS -->
+<section class="tab-panel active" id="panel-delta">
+  <div class="section-header">
+    <h2>Delta Lake Internals</h2>
+    <p>Transaction log, file layout, and how snapshots reconstruct table state.</p>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">📒</span> Transaction Log (_delta_log)</h3>
+      <p>Every mutation (INSERT, UPDATE, DELETE, MERGE) creates a new JSON commit file in <code>_delta_log/</code>. Each commit is an atomic unit containing <strong>actions</strong>:</p>
+      <ul style="margin-top:.5rem;padding-left:1.2rem;color:var(--text-dim);font-size:.85rem">
+        <li><strong>add</strong> — new Parquet file written</li>
+        <li><strong>remove</strong> — file logically deleted</li>
+        <li><strong>txn</strong> — idempotent streaming ID</li>
+        <li><strong>metaData</strong> — schema/partition changes</li>
+        <li><strong>protocol</strong> — reader/writer version</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="icon">📸</span> Snapshots &amp; Checkpoints</h3>
+      <p>To read a table, Delta replays log entries to build a <strong>snapshot</strong> — the set of "active" files at a version.</p>
+      <div class="info-box tip" style="margin-top:.75rem">
+        Every 10 commits, a <strong>Parquet checkpoint</strong> is written so readers don't replay from version 0. The <code>_last_checkpoint</code> file points to the latest checkpoint.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">⚡</span> Visual Demo — Simulate Delta Operations</h3>
+    <div class="controls">
+      <button class="btn primary" onclick="deltaDemo.insert()">INSERT Rows</button>
+      <button class="btn primary" onclick="deltaDemo.update()">UPDATE</button>
+      <button class="btn primary" onclick="deltaDemo.deleteOp()">DELETE</button>
+      <button class="btn" onclick="deltaDemo.checkpoint()">Create Checkpoint</button>
+      <button class="btn" onclick="deltaDemo.timeTravel()">⏪ Time Travel</button>
+      <button class="btn" onclick="deltaDemo.reset()">Reset</button>
+    </div>
+    <div class="metrics" id="delta-metrics">
+      <div class="metric"><div class="val" id="dm-version">0</div><div class="lbl">Version</div></div>
+      <div class="metric"><div class="val" id="dm-files">0</div><div class="lbl">Active Files</div></div>
+      <div class="metric"><div class="val" id="dm-rows">0</div><div class="lbl">Rows</div></div>
+      <div class="metric"><div class="val" id="dm-tombstones">0</div><div class="lbl">Tombstones</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div>
+        <h4 style="font-size:.85rem;margin-bottom:.5rem;color:var(--accent)">📂 File Layout (Object Storage)</h4>
+        <div class="vis-container" style="min-height:180px;padding:1rem">
+          <div class="file-grid" id="delta-file-grid"></div>
+        </div>
+      </div>
+      <div>
+        <h4 style="font-size:.85rem;margin-bottom:.5rem;color:var(--warn)">📒 Transaction Log</h4>
+        <div class="txn-log" id="delta-txn-log"><div style="color:var(--text-dim)">— log empty — press INSERT to begin</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">✅</span> When to Use</h3>
+      <div class="info-box info">
+        Delta Lake is the <strong>default storage format</strong> in Databricks. Use it whenever you need ACID transactions, schema enforcement, time travel, or CDC on a data lake.
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="icon">⚖️</span> Trade-offs</h3>
+      <table class="tradeoff-table">
+        <tr><th>Pro</th><th>Con</th></tr>
+        <tr><td>ACID guarantees via OCC</td><td>Write amplification on UPDATE/DELETE (copy-on-write)</td></tr>
+        <tr><td>Time travel for free</td><td>Storage grows until VACUUM</td></tr>
+        <tr><td>Schema evolution</td><td>Checkpoint compaction cost every 10 commits</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 2 — PARTITIONING -->
+<section class="tab-panel" id="panel-partition">
+  <div class="section-header">
+    <h2>Partitioning</h2>
+    <p>How Hive-style partitioning lays out files on disk and enables partition pruning.</p>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">📁</span> Partition Layout</h3>
+      <p>When you <code>PARTITIONED BY (col)</code>, each distinct value of <code>col</code> gets its own directory. Files within a partition only contain rows matching that value.</p>
+      <div class="info-box tip" style="margin-top:.5rem">
+        Partition columns are <strong>not stored inside Parquet</strong> — they're inferred from the directory path. This saves storage but means partition columns have no min/max stats for data skipping.
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="icon">🔍</span> Partition Pruning</h3>
+      <p>When a query has <code>WHERE partition_col = 'X'</code>, the engine reads <strong>only the directories</strong> matching X, skipping all others entirely — zero I/O on pruned partitions.</p>
+      <div class="info-box warn" style="margin-top:.5rem">
+        <strong>High-cardinality columns</strong> (e.g., user_id) create millions of tiny files → "small file problem." Choose columns with <strong>low-to-medium cardinality</strong> (date, region, status).
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">⚡</span> Visual Demo — Partition Pruning Simulator</h3>
+    <div class="controls">
+      <label>Partition Column
+        <select id="part-col" onchange="partDemo.render()">
+          <option value="region">region (4 values)</option>
+          <option value="status">status (3 values)</option>
+          <option value="date">date (12 values)</option>
+          <option value="user_id">user_id (50 values) ⚠️</option>
+        </select>
+      </label>
+      <label>Filter Value
+        <select id="part-filter" onchange="partDemo.runQuery()"></select>
+      </label>
+      <label>Files per Partition
+        <input type="range" id="part-fpcount" min="1" max="8" value="3" onchange="partDemo.render()">
+        <span id="part-fpcount-val">3</span>
+      </label>
+      <button class="btn primary" onclick="partDemo.runQuery()">Run Query</button>
+    </div>
+    <div class="metrics" id="part-metrics">
+      <div class="metric"><div class="val" id="pm-total">0</div><div class="lbl">Total Files</div></div>
+      <div class="metric"><div class="val" id="pm-scanned">0</div><div class="lbl">Scanned</div></div>
+      <div class="metric"><div class="val" id="pm-skipped">0</div><div class="lbl">Skipped</div></div>
+      <div class="metric"><div class="val" id="pm-ratio">0%</div><div class="lbl">Pruned</div></div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(88,166,255,.35)"></div>Scanned</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(48,54,61,.4)"></div>Skipped (Pruned)</div>
+    </div>
+    <div class="vis-container" style="min-height:200px;padding:1rem;overflow-x:auto" id="part-vis"></div>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">✅</span> When to Use</h3>
+      <div class="info-box info">Partition by columns almost always present in WHERE clauses with <strong>low cardinality</strong> (&lt;10k distinct values). Common: date, region, event_type.</div>
+    </div>
+    <div class="card">
+      <h3><span class="icon">⚖️</span> Trade-offs</h3>
+      <table class="tradeoff-table">
+        <tr><th>Pro</th><th>Con</th></tr>
+        <tr><td>Eliminates entire directories from scan</td><td>High cardinality → small file problem</td></tr>
+        <tr><td>Works with any query engine</td><td>Static — can't change after data written</td></tr>
+        <tr><td>Simple to understand</td><td>Only helps when filter is on partition column</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 3 — Z-ORDER -->
+<section class="tab-panel" id="panel-zorder">
+  <div class="section-header">
+    <h2>Z-Order (Multi-Dimensional Clustering)</h2>
+    <p>Co-locate related data within Parquet files so data skipping eliminates more files per query.</p>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">🔀</span> Z-Order Curve</h3>
+      <p>Z-Ordering interleaves the bits of multiple column values to produce a single sort key. Rows with <strong>similar values across all Z-Order columns</strong> land in the same file.</p>
+      <p style="margin-top:.5rem;font-size:.85rem;color:var(--text-dim)">This creates <strong>tight min/max ranges</strong> in file-level statistics, enabling Delta's data skipping to prune files even when filtering on non-partition columns.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon">📊</span> Data Skipping</h3>
+      <p>Each Parquet file footer stores <strong>min/max stats</strong> per column. When Z-Ordered, the min/max ranges per file are narrow → more files can be skipped.</p>
+      <div class="info-box tip" style="margin-top:.5rem">
+        <code>OPTIMIZE table ZORDER BY (col1, col2)</code> — rewrites data files. This is an <strong>expensive operation</strong> (full rewrite) but pays off with faster reads.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">⚡</span> Visual Demo — Z-Order Before vs After</h3>
+    <div class="controls">
+      <label>Number of Files
+        <input type="range" id="zo-files" min="8" max="32" value="16" onchange="document.getElementById('zo-files-val').textContent=this.value;zoDemo.generate()">
+        <span id="zo-files-val">16</span>
+      </label>
+      <label>Filter Column
+        <select id="zo-filter-col" onchange="zoDemo.generate()">
+          <option value="col1">Column A (Z-Ordered)</option>
+          <option value="col2">Column B (Z-Ordered)</option>
+        </select>
+      </label>
+      <label>Filter Range
+        <input type="range" id="zo-range" min="5" max="40" value="15" onchange="document.getElementById('zo-range-val').textContent=this.value;zoDemo.query()">
+        <span id="zo-range-val">15</span>
+      </label>
+      <button class="btn primary" onclick="zoDemo.query()">Run Query</button>
+    </div>
+    <div class="comparison">
+      <div class="side before">
+        <h4>❌ BEFORE Z-Order (Random Layout)</h4>
+        <div class="metrics" id="zo-before-metrics">
+          <div class="metric"><div class="val" id="zo-b-scanned">0</div><div class="lbl">Scanned</div></div>
+          <div class="metric"><div class="val" id="zo-b-skipped">0</div><div class="lbl">Skipped</div></div>
+        </div>
+        <div class="file-grid" id="zo-before-grid"></div>
+      </div>
+      <div class="side after">
+        <h4>✅ AFTER Z-Order (Clustered)</h4>
+        <div class="metrics" id="zo-after-metrics">
+          <div class="metric"><div class="val" id="zo-a-scanned">0</div><div class="lbl">Scanned</div></div>
+          <div class="metric"><div class="val" id="zo-a-skipped">0</div><div class="lbl">Skipped</div></div>
+        </div>
+        <div class="file-grid" id="zo-after-grid"></div>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(88,166,255,.35)"></div>Scanned (range overlaps)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(48,54,61,.4)"></div>Skipped (no overlap)</div>
+    </div>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">✅</span> When to Use</h3>
+      <div class="info-box info">Use Z-Order on columns with <strong>high cardinality</strong> that appear frequently in WHERE/JOIN clauses but are <strong>not</strong> good partition candidates. Best for 1-4 columns.</div>
+    </div>
+    <div class="card">
+      <h3><span class="icon">⚖️</span> Trade-offs</h3>
+      <table class="tradeoff-table">
+        <tr><th>Pro</th><th>Con</th></tr>
+        <tr><td>Dramatic reduction in files scanned</td><td>Full rewrite on OPTIMIZE — expensive</td></tr>
+        <tr><td>Works on non-partition columns</td><td>Effectiveness degrades > 4 columns</td></tr>
+        <tr><td>Leverages existing Delta stats</td><td>Doesn't help if stats are disabled or column is string with high entropy</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 4 — LIQUID CLUSTERING -->
+<section class="tab-panel" id="panel-liquid">
+  <div class="section-header">
+    <h2>Liquid Clustering</h2>
+    <p>Databricks' next-gen clustering — automatic, incremental, and column-changeable at any time.</p>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">💧</span> How It Works</h3>
+      <p>Liquid Clustering uses <strong>Hilbert space-filling curves</strong> (better locality than Z-curves) and applies clustering <strong>incrementally</strong> — only newly written or unclustered files are reorganized.</p>
+      <ul style="margin-top:.5rem;padding-left:1.2rem;font-size:.85rem;color:var(--text-dim)">
+        <li>Defined at table creation: <code>CLUSTER BY (col1, col2)</code></li>
+        <li>Columns can be <strong>changed later</strong> with <code>ALTER TABLE ... CLUSTER BY</code></li>
+        <li>Triggered automatically by <code>OPTIMIZE</code> (no ZORDER BY clause needed)</li>
+        <li>Uses <strong>eager clustering</strong> in some write paths</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="icon">🔄</span> Z-Order vs Liquid</h3>
+      <table class="tradeoff-table">
+        <tr><th>Feature</th><th>Z-Order</th><th>Liquid Clustering</th></tr>
+        <tr><td>Algorithm</td><td>Z-curve</td><td>Hilbert curve</td></tr>
+        <tr><td>Rewrite scope</td><td>Full table or partition</td><td>Incremental (only unclustered files)</td></tr>
+        <tr><td>Change columns</td><td>Re-run OPTIMIZE with new ZORDER BY</td><td><code>ALTER TABLE ... CLUSTER BY</code></td></tr>
+        <tr><td>Works with partitioning?</td><td>Per-partition</td><td>Replaces partitioning</td></tr>
+        <tr><td>Auto-trigger</td><td>Manual only</td><td>Can be automatic</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">⚡</span> Visual Demo — Liquid Clustering Simulation</h3>
+    <div class="controls">
+      <label>Clustering Columns
+        <select id="lq-cols" onchange="liquidDemo.generate()">
+          <option value="1">1 column</option>
+          <option value="2" selected>2 columns</option>
+          <option value="3">3 columns</option>
+        </select>
+      </label>
+      <label>Total Files
+        <input type="range" id="lq-files" min="12" max="40" value="20" onchange="document.getElementById('lq-files-val').textContent=this.value;liquidDemo.generate()">
+        <span id="lq-files-val">20</span>
+      </label>
+      <label>New Files (Unclustered)
+        <input type="range" id="lq-new" min="0" max="15" value="5" onchange="document.getElementById('lq-new-val').textContent=this.value;liquidDemo.generate()">
+        <span id="lq-new-val">5</span>
+      </label>
+      <button class="btn primary" onclick="liquidDemo.optimize()">Run OPTIMIZE</button>
+      <button class="btn" onclick="liquidDemo.query()">Run Query</button>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="val" id="lq-clustered">0</div><div class="lbl">Clustered</div></div>
+      <div class="metric"><div class="val" id="lq-unclustered">0</div><div class="lbl">Unclustered</div></div>
+      <div class="metric"><div class="val" id="lq-scanned">—</div><div class="lbl">Scanned</div></div>
+      <div class="metric"><div class="val" id="lq-skipped">—</div><div class="lbl">Skipped</div></div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(63,185,80,.3);border-color:var(--accent2)"></div>Clustered</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(210,153,34,.3);border-color:var(--warn)"></div>Unclustered (new)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(88,166,255,.3);border-color:var(--accent)"></div>Scanned</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(48,54,61,.4)"></div>Skipped</div>
+    </div>
+    <div class="vis-container" style="min-height:100px;padding:1rem">
+      <div class="file-grid" id="lq-grid"></div>
+    </div>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">✅</span> When to Use</h3>
+      <div class="info-box info">
+        <strong>Preferred over Z-Order for new tables</strong> on Databricks Runtime 13.3+. Especially when:
+        <ul style="margin-top:.25rem;padding-left:1.2rem">
+          <li>Clustering columns may change over time</li>
+          <li>Table has continuous ingestion (incremental optimize)</li>
+          <li>You want to eliminate partitioning</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="icon">⚖️</span> Trade-offs</h3>
+      <table class="tradeoff-table">
+        <tr><th>Pro</th><th>Con</th></tr>
+        <tr><td>Incremental — doesn't rewrite entire table</td><td>Databricks-only (not OSS Delta)</td></tr>
+        <tr><td>Better locality (Hilbert curve)</td><td>Replaces partitioning — migration needed</td></tr>
+        <tr><td>Columns changeable via ALTER</td><td>Still requires OPTIMIZE to cluster</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 5 — DLT ARCHITECTURE -->
+<section class="tab-panel" id="panel-dlt">
+  <div class="section-header">
+    <h2>Delta Live Tables (DLT) Architecture</h2>
+    <p>Declarative ETL pipelines with built-in quality expectations and the medallion architecture.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">🏗️</span> Pipeline Architecture — Medallion Flow</h3>
+    <div class="pipeline" id="dlt-pipeline">
+      <div class="pipe-stage bronze">
+        <strong>Bronze</strong><br>
+        <span style="font-size:.7rem">Raw ingestion<br>Append-only<br>Schema on read</span>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage silver">
+        <strong>Silver</strong><br>
+        <span style="font-size:.7rem">Cleaned &amp; conformed<br>Deduplication<br>Type casting</span>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage gold">
+        <strong>Gold</strong><br>
+        <span style="font-size:.7rem">Business aggregates<br>Feature tables<br>Dashboards</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">📋</span> DLT Table Types</h3>
+      <ul style="padding-left:1.2rem;font-size:.85rem;color:var(--text-dim);line-height:2">
+        <li><strong style="color:var(--text)">Streaming Tables</strong> — append-only, process each record once (Auto Loader sources)</li>
+        <li><strong style="color:var(--text)">Materialized Views</strong> — recomputed on each pipeline run, can handle aggregations/joins</li>
+        <li><strong style="color:var(--text)">Views</strong> — virtual, not materialized, used for intermediate logic</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="icon">🛡️</span> Expectations (Data Quality)</h3>
+      <p style="font-size:.85rem">DLT expectations are declarative quality constraints:</p>
+      <ul style="padding-left:1.2rem;font-size:.85rem;color:var(--text-dim);line-height:2;margin-top:.25rem">
+        <li><strong style="color:var(--accent2)">EXPECT</strong> — warn on violation, keep row</li>
+        <li><strong style="color:var(--warn)">EXPECT ... ON VIOLATION DROP</strong> — drop bad rows</li>
+        <li><strong style="color:var(--danger)">EXPECT ... ON VIOLATION FAIL</strong> — fail pipeline</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">⚡</span> Visual Demo — DLT Pipeline Simulator</h3>
+    <div class="controls">
+      <label>Incoming Records
+        <input type="range" id="dlt-records" min="10" max="100" value="40" onchange="document.getElementById('dlt-records-val').textContent=this.value">
+        <span id="dlt-records-val">40</span>
+      </label>
+      <label>% with null email
+        <input type="range" id="dlt-null-pct" min="0" max="50" value="15" onchange="document.getElementById('dlt-null-val').textContent=this.value+'%'">
+        <span id="dlt-null-val">15%</span>
+      </label>
+      <label>% with negative amount
+        <input type="range" id="dlt-neg-pct" min="0" max="30" value="10" onchange="document.getElementById('dlt-neg-val').textContent=this.value+'%'">
+        <span id="dlt-neg-val">10%</span>
+      </label>
+      <label>Silver Expectation
+        <select id="dlt-expect-action">
+          <option value="warn">EXPECT (warn, keep)</option>
+          <option value="drop" selected>ON VIOLATION DROP</option>
+          <option value="fail">ON VIOLATION FAIL</option>
+        </select>
+      </label>
+      <button class="btn primary" onclick="dltDemo.run()">▶ Run Pipeline</button>
+      <button class="btn" onclick="dltDemo.reset()">Reset</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-top:1rem">
+      <div class="card" style="text-align:center;border-color:#cd7f32">
+        <h4 style="color:#e0a060;font-size:.85rem">🥉 Bronze</h4>
+        <div class="metric" style="border:none;padding:.5rem 0"><div class="val" id="dlt-bronze-count">—</div><div class="lbl">Records</div></div>
+        <div id="dlt-bronze-badges"></div>
+      </div>
+      <div class="card" style="text-align:center;border-color:#aaa">
+        <h4 style="color:#ccc;font-size:.85rem">🥈 Silver</h4>
+        <div class="metric" style="border:none;padding:.5rem 0"><div class="val" id="dlt-silver-count">—</div><div class="lbl">Records</div></div>
+        <div id="dlt-silver-badges"></div>
+      </div>
+      <div class="card" style="text-align:center;border-color:#ffd700">
+        <h4 style="color:#ffe066;font-size:.85rem">🥇 Gold</h4>
+        <div class="metric" style="border:none;padding:.5rem 0"><div class="val" id="dlt-gold-count">—</div><div class="lbl">Records</div></div>
+        <div id="dlt-gold-badges"></div>
+      </div>
+    </div>
+
+    <div class="txn-log" id="dlt-log" style="margin-top:1rem"><div style="color:var(--text-dim)">— pipeline idle — click Run Pipeline</div></div>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">✅</span> When to Use</h3>
+      <div class="info-box info">Use DLT when you want <strong>declarative ETL</strong> with automatic dependency management, built-in quality gates, and simplified medallion architecture. Great for teams that want to focus on transformations, not orchestration.</div>
+    </div>
+    <div class="card">
+      <h3><span class="icon">⚖️</span> Trade-offs</h3>
+      <table class="tradeoff-table">
+        <tr><th>Pro</th><th>Con</th></tr>
+        <tr><td>Declarative — engine optimizes execution</td><td>Databricks-only, lock-in</td></tr>
+        <tr><td>Built-in data quality (expectations)</td><td>Less control over scheduling/retries</td></tr>
+        <tr><td>Automatic lineage &amp; monitoring</td><td>Unit testing requires special patterns</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 6 — OPTIMIZE / VACUUM / ANALYZE -->
+<section class="tab-panel" id="panel-maintain">
+  <div class="section-header">
+    <h2>OPTIMIZE / VACUUM / ANALYZE</h2>
+    <p>Table maintenance commands — compaction, cleanup, and statistics.</p>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">🔧</span> OPTIMIZE (Compaction)</h3>
+      <p>Combines small files into larger ones (target ~1 GB). Can also apply Z-Ordering or Liquid Clustering.</p>
+      <div class="info-box tip" style="margin-top:.5rem">
+        <code>OPTIMIZE table WHERE date = '2024-01-01'</code> — you can scope OPTIMIZE to specific partitions to reduce cost.
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="icon">🧹</span> VACUUM</h3>
+      <p>Physically deletes files that are no longer referenced by any active version and are older than the retention period (default: 7 days).</p>
+      <div class="info-box danger" style="margin-top:.5rem">
+        <strong>Warning:</strong> After VACUUM, you <strong>cannot time travel</strong> to versions that relied on the deleted files. Set retention carefully.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.25rem">
+    <h3><span class="icon">📈</span> ANALYZE TABLE</h3>
+    <p>Computes column-level statistics (distinct count, null count, min, max, avg length) that the optimizer uses for <strong>cost-based optimization</strong> (CBO) — better join strategies, better broadcast decisions.</p>
+    <div class="info-box info" style="margin-top:.5rem">
+      <code>ANALYZE TABLE t COMPUTE STATISTICS FOR ALL COLUMNS</code>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">⚡</span> Visual Demo — Maintenance Lifecycle</h3>
+    <div class="controls">
+      <label>Small Files
+        <input type="range" id="maint-small" min="5" max="30" value="15" onchange="document.getElementById('maint-small-val').textContent=this.value;maintDemo.generate()">
+        <span id="maint-small-val">15</span>
+      </label>
+      <label>Tombstoned Files
+        <input type="range" id="maint-tomb" min="0" max="10" value="4" onchange="document.getElementById('maint-tomb-val').textContent=this.value;maintDemo.generate()">
+        <span id="maint-tomb-val">4</span>
+      </label>
+      <label>Retention (hours)
+        <input type="range" id="maint-retention" min="0" max="168" value="168" step="24" onchange="document.getElementById('maint-ret-val').textContent=this.value+'h';maintDemo.generate()">
+        <span id="maint-ret-val">168h</span>
+      </label>
+      <button class="btn primary" onclick="maintDemo.optimize()">OPTIMIZE</button>
+      <button class="btn" style="border-color:var(--danger);color:var(--danger)" onclick="maintDemo.vacuum()">VACUUM</button>
+      <button class="btn" onclick="maintDemo.analyze()">ANALYZE</button>
+      <button class="btn" onclick="maintDemo.reset()">Reset</button>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="val" id="mt-active">0</div><div class="lbl">Active Files</div></div>
+      <div class="metric"><div class="val" id="mt-tomb">0</div><div class="lbl">Tombstoned</div></div>
+      <div class="metric"><div class="val" id="mt-size">0</div><div class="lbl">Avg Size (MB)</div></div>
+      <div class="metric"><div class="val" id="mt-stats">No</div><div class="lbl">CBO Stats</div></div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(63,185,80,.3);border-color:var(--accent2)"></div>Active (good size)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(210,153,34,.3);border-color:var(--warn)"></div>Small file</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(248,81,73,.2);border-color:var(--danger)"></div>Tombstoned</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(188,140,255,.2);border-color:var(--purple)"></div>Compacted</div>
+    </div>
+    <div class="vis-container" style="min-height:120px;padding:1rem">
+      <div class="file-grid" id="maint-grid"></div>
+    </div>
+    <div class="txn-log" id="maint-log" style="margin-top:1rem"><div style="color:var(--text-dim)">— no maintenance operations yet —</div></div>
+  </div>
+
+  <div class="concept-grid">
+    <div class="card">
+      <h3><span class="icon">✅</span> When to Use</h3>
+      <div class="info-box info">
+        <ul style="padding-left:1rem">
+          <li><strong>OPTIMIZE</strong>: After bulk loads, streaming micro-batches, or many small appends. Schedule daily/hourly.</li>
+          <li><strong>VACUUM</strong>: Run periodically (daily/weekly) to reclaim storage. After confirming no active readers need old versions.</li>
+          <li><strong>ANALYZE</strong>: After major data changes, before complex analytical queries with expensive joins.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="icon">⚖️</span> Trade-offs</h3>
+      <table class="tradeoff-table">
+        <tr><th>Command</th><th>Cost</th><th>Risk</th></tr>
+        <tr><td>OPTIMIZE</td><td>CPU + I/O for rewrite</td><td>Write amplification; conflicts with concurrent writes</td></tr>
+        <tr><td>VACUUM</td><td>Listing cost (metadata scan)</td><td>Breaks time travel for deleted versions</td></tr>
+        <tr><td>ANALYZE</td><td>Full table scan</td><td>Stats can become stale → re-run periodically</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+</div><!-- /.dbx-playground -->
+
+<script>
+// TAB SWITCHING
+document.querySelectorAll('.dbx-playground .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.dbx-playground .tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.dbx-playground .tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// UTILITY FUNCTIONS
+const rng = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const uid = () => Math.random().toString(36).substr(2, 8);
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+function makeFileBlock(opts = {}) {
+  const d = document.createElement('div');
+  d.className = 'file-block ' + (opts.cls || '');
+  d.textContent = opts.label || '';
+  d.style.width = (opts.w || 40) + 'px';
+  d.style.height = (opts.h || 40) + 'px';
+  if (opts.bg) d.style.background = opts.bg;
+  if (opts.border) d.style.borderColor = opts.border;
+  if (opts.tooltip) {
+    const tt = document.createElement('span');
+    tt.className = 'tt';
+    tt.innerHTML = opts.tooltip;
+    d.appendChild(tt);
+  }
+  return d;
+}
+
+function animateBlocks(container, blocks, delay = 50) {
+  container.innerHTML = '';
+  blocks.forEach((b, i) => {
+    b.style.opacity = '0';
+    b.style.transform = 'scale(0.8)';
+    container.appendChild(b);
+    setTimeout(() => {
+      b.style.opacity = '';
+      b.style.transform = '';
+    }, i * delay);
+  });
+}
+
+// 1 — DELTA LAKE INTERNALS DEMO
+const deltaDemo = (() => {
+  let version = 0;
+  let files = [];
+  let logEntries = [];
+
+  function addLogEntry(op, detail) {
+    logEntries.push({ version, op, detail });
+    renderLog();
+  }
+
+  function renderLog() {
+    const el = document.getElementById('delta-txn-log');
+    el.innerHTML = logEntries.map((e, i) =>
+      '<div class="entry"><span class="txn-entry-num">v' + e.version + '</span> <span class="txn-op">' + e.op + '</span> <span class="txn-detail">' + e.detail + '</span></div>'
+    ).join('');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function renderFiles() {
+    const grid = document.getElementById('delta-file-grid');
+    const blocks = files.map(f => {
+      const cls = f.active ? 'highlight' : 'pruned';
+      const sizeLabel = f.rows + 'r';
+      return makeFileBlock({
+        cls,
+        label: sizeLabel,
+        tooltip: f.id + '<br>Rows: ' + f.rows + '<br>' + (f.active ? 'ACTIVE' : 'TOMBSTONE (v' + f.removedAt + ')'),
+        w: 44, h: 44
+      });
+    });
+    animateBlocks(grid, blocks, 30);
+  }
+
+  function updateMetrics() {
+    const active = files.filter(f => f.active);
+    const tombstones = files.filter(f => !f.active);
+    document.getElementById('dm-version').textContent = version;
+    document.getElementById('dm-files').textContent = active.length;
+    document.getElementById('dm-rows').textContent = active.reduce((s, f) => s + f.rows, 0);
+    document.getElementById('dm-tombstones').textContent = tombstones.length;
+  }
+
+  function insert() {
+    version++;
+    const count = rng(1, 3);
+    for (let i = 0; i < count; i++) {
+      const f = { id: 'part-' + uid() + '.parquet', rows: rng(100, 500), active: true, addedAt: version, removedAt: null };
+      files.push(f);
+      addLogEntry('add', f.id + ' (' + f.rows + ' rows)');
+    }
+    updateMetrics();
+    renderFiles();
+  }
+
+  function update() {
+    const active = files.filter(f => f.active);
+    if (active.length === 0) { insert(); return; }
+    version++;
+    const target = active[rng(0, active.length - 1)];
+    target.active = false;
+    target.removedAt = version;
+    addLogEntry('remove', target.id);
+    const newF = { id: 'part-' + uid() + '.parquet', rows: target.rows + rng(-50, 50), active: true, addedAt: version, removedAt: null };
+    files.push(newF);
+    addLogEntry('add', newF.id + ' (' + newF.rows + ' rows) [rewrite of ' + target.id + ']');
+    updateMetrics();
+    renderFiles();
+  }
+
+  function deleteOp() {
+    const active = files.filter(f => f.active);
+    if (active.length === 0) return;
+    version++;
+    const target = active[rng(0, active.length - 1)];
+    target.active = false;
+    target.removedAt = version;
+    addLogEntry('remove', target.id + ' (DELETE)');
+    if (Math.random() > 0.4) {
+      const newF = { id: 'part-' + uid() + '.parquet', rows: Math.max(10, target.rows - rng(50, 200)), active: true, addedAt: version, removedAt: null };
+      files.push(newF);
+      addLogEntry('add', newF.id + ' (' + newF.rows + ' rows) [partial rewrite]');
+    }
+    updateMetrics();
+    renderFiles();
+  }
+
+  function checkpoint() {
+    if (version === 0) return;
+    addLogEntry('checkpoint', 'Parquet checkpoint at version ' + version + ' — compacts log entries 0..' + version);
+    updateMetrics();
+  }
+
+  function timeTravel() {
+    if (version < 2) return;
+    const ttVersion = rng(0, version - 1);
+    const snapshot = files.filter(f => f.addedAt <= ttVersion && (f.removedAt === null || f.removedAt > ttVersion));
+    const rows = snapshot.reduce((s, f) => s + f.rows, 0);
+    addLogEntry('time-travel', 'Reading version ' + ttVersion + ': ' + snapshot.length + ' files, ' + rows + ' rows');
+    const grid = document.getElementById('delta-file-grid');
+    const blocks = files.map(f => {
+      const inSnapshot = f.addedAt <= ttVersion && (f.removedAt === null || f.removedAt > ttVersion);
+      return makeFileBlock({
+        cls: inSnapshot ? 'scanned' : 'skipped',
+        label: f.rows + 'r',
+        tooltip: f.id + '<br>Added: v' + f.addedAt + '<br>' + (inSnapshot ? 'IN SNAPSHOT v' + ttVersion : 'NOT in snapshot'),
+        w: 44, h: 44
+      });
+    });
+    animateBlocks(grid, blocks, 30);
+  }
+
+  function reset() {
+    version = 0; files = []; logEntries = [];
+    document.getElementById('delta-txn-log').innerHTML = '<div style="color:var(--text-dim)">— log empty — press INSERT to begin</div>';
+    document.getElementById('delta-file-grid').innerHTML = '';
+    updateMetrics();
+  }
+
+  return { insert, update, deleteOp, checkpoint, timeTravel, reset };
+})();
+
+// 2 — PARTITIONING DEMO
+const partDemo = (() => {
+  const partValues = {
+    region: ['us-east', 'us-west', 'eu-west', 'ap-south'],
+    status: ['active', 'pending', 'closed'],
+    date: ['2024-01', '2024-02', '2024-03', '2024-04', '2024-05', '2024-06',
+           '2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12'],
+    user_id: Array.from({ length: 50 }, (_, i) => 'user_' + String(i + 1).padStart(3, '0'))
+  };
+
+  let currentFiles = [];
+
+  function render() {
+    const col = document.getElementById('part-col').value;
+    const values = partValues[col];
+    const fpc = parseInt(document.getElementById('part-fpcount').value);
+    document.getElementById('part-fpcount-val').textContent = fpc;
+
+    const filterEl = document.getElementById('part-filter');
+    filterEl.innerHTML = '<option value="*">* (ALL — full scan)</option>' +
+      values.map(v => '<option value="' + v + '">' + v + '</option>').join('');
+
+    currentFiles = [];
+    values.forEach(v => {
+      for (let i = 0; i < fpc; i++) {
+        currentFiles.push({ partition: v, id: col + '=' + v + '/part-' + uid() + '.parquet', rows: rng(100, 1000) });
+      }
+    });
+
+    renderVis();
+    clearMetrics();
+  }
+
+  function renderVis(filter) {
+    const col = document.getElementById('part-col').value;
+    const values = partValues[col];
+    const vis = document.getElementById('part-vis');
+    vis.innerHTML = '';
+
+    values.forEach(v => {
+      const group = document.createElement('div');
+      group.style.cssText = 'display:inline-block;margin:0 8px 12px 0;vertical-align:top';
+      const label = document.createElement('div');
+      label.style.cssText = 'font-size:.7rem;color:var(--text-dim);margin-bottom:4px;text-align:center;font-family:var(--font-mono)';
+      label.textContent = col + '=' + v;
+      group.appendChild(label);
+
+      const grid = document.createElement('div');
+      grid.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;max-width:200px';
+
+      const partFiles = currentFiles.filter(f => f.partition === v);
+      partFiles.forEach(f => {
+        const isMatch = !filter || filter === '*' || f.partition === filter;
+        const block = makeFileBlock({
+          cls: filter ? (isMatch ? 'scanned scanning' : 'skipped') : '',
+          label: (f.rows / 1000).toFixed(1) + 'k',
+          tooltip: f.id + '<br>Rows: ' + f.rows + '<br>' + (filter ? (isMatch ? 'SCANNED' : 'PRUNED') : ''),
+          w: 38, h: 38
+        });
+        grid.appendChild(block);
+      });
+
+      group.appendChild(grid);
+      vis.appendChild(group);
+    });
+  }
+
+  function runQuery() {
+    const filter = document.getElementById('part-filter').value;
+    renderVis(filter);
+
+    const scanned = currentFiles.filter(f => filter === '*' || f.partition === filter).length;
+    const skipped = currentFiles.length - scanned;
+    document.getElementById('pm-total').textContent = currentFiles.length;
+    document.getElementById('pm-scanned').textContent = scanned;
+    document.getElementById('pm-skipped').textContent = skipped;
+    document.getElementById('pm-ratio').textContent = currentFiles.length ? Math.round(skipped / currentFiles.length * 100) + '%' : '0%';
+  }
+
+  function clearMetrics() {
+    ['pm-total', 'pm-scanned', 'pm-skipped'].forEach(id => document.getElementById(id).textContent = currentFiles.length);
+    document.getElementById('pm-scanned').textContent = '—';
+    document.getElementById('pm-skipped').textContent = '—';
+    document.getElementById('pm-ratio').textContent = '—';
+    document.getElementById('pm-total').textContent = currentFiles.length;
+  }
+
+  setTimeout(() => render(), 100);
+
+  return { render, runQuery };
+})();
+
+// 3 — Z-ORDER DEMO
+const zoDemo = (() => {
+  let beforeFiles = [];
+  let afterFiles = [];
+
+  function generate() {
+    const n = parseInt(document.getElementById('zo-files').value);
+
+    beforeFiles = [];
+    for (let i = 0; i < n; i++) {
+      const min1 = rng(0, 90);
+      const max1 = min1 + rng(10, 60);
+      const min2 = rng(0, 90);
+      const max2 = min2 + rng(10, 60);
+      beforeFiles.push({ id: i, col1: { min: min1, max: Math.min(100, max1) }, col2: { min: min2, max: Math.min(100, max2) } });
+    }
+
+    afterFiles = [];
+    const step = Math.floor(100 / n);
+    for (let i = 0; i < n; i++) {
+      const base1 = (i * step) % 100;
+      const base2 = Math.floor(i / Math.ceil(Math.sqrt(n))) * Math.floor(100 / Math.ceil(Math.sqrt(n)));
+      afterFiles.push({
+        id: i,
+        col1: { min: base1, max: Math.min(100, base1 + step + rng(0, 5)) },
+        col2: { min: base2, max: Math.min(100, base2 + Math.floor(100 / Math.ceil(Math.sqrt(n))) + rng(0, 5)) }
+      });
+    }
+
+    query();
+  }
+
+  function query() {
+    const filterCol = document.getElementById('zo-filter-col').value;
+    const filterMax = parseInt(document.getElementById('zo-range').value);
+    const filterMin = 0;
+
+    function isOverlap(file) {
+      const stat = file[filterCol];
+      return stat.min <= filterMax && stat.max >= filterMin;
+    }
+
+    const beforeGrid = document.getElementById('zo-before-grid');
+    const bScanned = beforeFiles.filter(isOverlap);
+    const bSkipped = beforeFiles.filter(f => !isOverlap(f));
+
+    beforeGrid.innerHTML = '';
+    beforeFiles.forEach(f => {
+      const hit = isOverlap(f);
+      const stat = f[filterCol];
+      const block = makeFileBlock({
+        cls: hit ? 'scanned' : 'skipped',
+        label: stat.min + '-' + stat.max,
+        tooltip: 'File ' + f.id + '<br>col1: [' + f.col1.min + ',' + f.col1.max + ']<br>col2: [' + f.col2.min + ',' + f.col2.max + ']<br>' + (hit ? 'SCANNED (range overlap)' : 'SKIPPED'),
+        w: 56, h: 40
+      });
+      beforeGrid.appendChild(block);
+    });
+
+    document.getElementById('zo-b-scanned').textContent = bScanned.length;
+    document.getElementById('zo-b-skipped').textContent = bSkipped.length;
+
+    const afterGrid = document.getElementById('zo-after-grid');
+    const aScanned = afterFiles.filter(isOverlap);
+    const aSkipped = afterFiles.filter(f => !isOverlap(f));
+
+    afterGrid.innerHTML = '';
+    afterFiles.forEach(f => {
+      const hit = isOverlap(f);
+      const stat = f[filterCol];
+      const block = makeFileBlock({
+        cls: hit ? 'scanned' : 'skipped',
+        label: stat.min + '-' + stat.max,
+        tooltip: 'File ' + f.id + '<br>col1: [' + f.col1.min + ',' + f.col1.max + ']<br>col2: [' + f.col2.min + ',' + f.col2.max + ']<br>' + (hit ? 'SCANNED (range overlap)' : 'SKIPPED'),
+        w: 56, h: 40
+      });
+      afterGrid.appendChild(block);
+    });
+
+    document.getElementById('zo-a-scanned').textContent = aScanned.length;
+    document.getElementById('zo-a-skipped').textContent = aSkipped.length;
+  }
+
+  setTimeout(() => generate(), 150);
+
+  return { generate, query };
+})();
+
+// 4 — LIQUID CLUSTERING DEMO
+const liquidDemo = (() => {
+  let files = [];
+
+  function generate() {
+    const total = parseInt(document.getElementById('lq-files').value);
+    const newCount = Math.min(parseInt(document.getElementById('lq-new').value), total);
+    const clustered = total - newCount;
+
+    files = [];
+    for (let i = 0; i < clustered; i++) {
+      const base = Math.floor(i / clustered * 100);
+      const span = Math.floor(100 / clustered) + rng(0, 5);
+      files.push({
+        id: i,
+        clustered: true,
+        range: { min: base, max: Math.min(100, base + span) }
+      });
+    }
+    for (let i = 0; i < newCount; i++) {
+      const min = rng(0, 70);
+      files.push({
+        id: clustered + i,
+        clustered: false,
+        range: { min, max: min + rng(20, 50) }
+      });
+    }
+
+    renderGrid();
+    document.getElementById('lq-clustered').textContent = clustered;
+    document.getElementById('lq-unclustered').textContent = newCount;
+    document.getElementById('lq-scanned').textContent = '—';
+    document.getElementById('lq-skipped').textContent = '—';
+  }
+
+  function renderGrid(queryRange) {
+    const grid = document.getElementById('lq-grid');
+    grid.innerHTML = '';
+
+    files.forEach(f => {
+      let cls = f.clustered ? 'highlight' : '';
+      let border = f.clustered ? 'var(--accent2)' : 'var(--warn)';
+      let bg = f.clustered ? 'rgba(63,185,80,.15)' : 'rgba(210,153,34,.15)';
+
+      if (queryRange !== undefined) {
+        const overlaps = f.range.min <= queryRange.max && f.range.max >= queryRange.min;
+        cls = overlaps ? 'scanned' : 'skipped';
+        if (overlaps) { bg = 'rgba(88,166,255,.2)'; border = 'var(--accent)'; }
+        else { bg = ''; border = ''; }
+      }
+
+      const block = makeFileBlock({
+        cls,
+        label: f.range.min + '-' + f.range.max,
+        tooltip: 'File ' + f.id + '<br>Range: [' + f.range.min + ', ' + f.range.max + ']<br>' + (f.clustered ? 'CLUSTERED' : 'UNCLUSTERED'),
+        w: 56, h: 42,
+        bg, border
+      });
+      grid.appendChild(block);
+    });
+  }
+
+  function optimize() {
+    const unclustered = files.filter(f => !f.clustered);
+    if (unclustered.length === 0) return;
+
+    unclustered.sort((a, b) => (a.range.min + a.range.max) / 2 - (b.range.min + b.range.max) / 2);
+    unclustered.forEach((f, i) => {
+      const base = Math.floor(i / unclustered.length * 100);
+      const span = Math.floor(100 / files.length) + rng(0, 3);
+      f.range = { min: base, max: Math.min(100, base + span) };
+      f.clustered = true;
+    });
+
+    document.getElementById('lq-clustered').textContent = files.length;
+    document.getElementById('lq-unclustered').textContent = 0;
+    document.getElementById('lq-new').value = 0;
+    document.getElementById('lq-new-val').textContent = '0';
+    renderGrid();
+  }
+
+  function query() {
+    const filterMax = rng(10, 40);
+    const filterMin = 0;
+    const range = { min: filterMin, max: filterMax };
+
+    renderGrid(range);
+
+    const scanned = files.filter(f => f.range.min <= range.max && f.range.max >= range.min).length;
+    const skipped = files.length - scanned;
+    document.getElementById('lq-scanned').textContent = scanned;
+    document.getElementById('lq-skipped').textContent = skipped;
+  }
+
+  setTimeout(() => generate(), 200);
+
+  return { generate, optimize, query };
+})();
+
+// 5 — DLT DEMO
+const dltDemo = (() => {
+  let logEntries = [];
+
+  function log(msg, level) {
+    level = level || 'info';
+    const colors = { info: 'var(--accent)', warn: 'var(--warn)', error: 'var(--danger)', success: 'var(--accent2)' };
+    logEntries.push({ msg: msg, color: colors[level] || colors.info });
+    const el = document.getElementById('dlt-log');
+    el.innerHTML = logEntries.map(e =>
+      '<div class="entry" style="color:' + e.color + '">' + e.msg + '</div>'
+    ).join('');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function run() {
+    logEntries = [];
+    const total = parseInt(document.getElementById('dlt-records').value);
+    const nullPct = parseInt(document.getElementById('dlt-null-pct').value) / 100;
+    const negPct = parseInt(document.getElementById('dlt-neg-pct').value) / 100;
+    const action = document.getElementById('dlt-expect-action').value;
+
+    const records = [];
+    for (let i = 0; i < total; i++) {
+      records.push({
+        id: i + 1,
+        email: Math.random() < nullPct ? null : 'user' + i + '@example.com',
+        amount: Math.random() < negPct ? -rng(1, 100) : rng(1, 1000),
+        region: ['us-east', 'us-west', 'eu-west', 'ap-south'][rng(0, 3)]
+      });
+    }
+
+    // BRONZE
+    log('▶ BRONZE: Ingesting ' + total + ' raw records from source...', 'info');
+    var bronzeCount = total;
+    document.getElementById('dlt-bronze-count').textContent = bronzeCount;
+    document.getElementById('dlt-bronze-badges').innerHTML =
+      '<span class="expect-badge pass">' + bronzeCount + ' ingested</span>';
+    log('  ✓ Bronze: ' + bronzeCount + ' records written (append-only, raw)', 'success');
+
+    // SILVER
+    log('▶ SILVER: Applying expectations...', 'info');
+    var nullEmails = records.filter(r => r.email === null);
+    var negAmounts = records.filter(r => r.amount < 0);
+    var badRecords = new Set([...nullEmails.map(r => r.id), ...negAmounts.map(r => r.id)]);
+    var badCount = badRecords.size;
+
+    log('  Expectation: email IS NOT NULL — ' + nullEmails.length + ' violations', nullEmails.length ? 'warn' : 'success');
+    log('  Expectation: amount > 0 — ' + negAmounts.length + ' violations', negAmounts.length ? 'warn' : 'success');
+
+    var silverCount;
+    var silverFailed = false;
+
+    if (action === 'warn') {
+      silverCount = total;
+      log('  Mode: EXPECT (warn) — keeping all ' + total + ' records, ' + badCount + ' flagged', 'warn');
+      document.getElementById('dlt-silver-badges').innerHTML =
+        '<span class="expect-badge pass">' + (total - badCount) + ' clean</span>' +
+        '<span class="expect-badge warn">' + badCount + ' flagged</span>';
+    } else if (action === 'drop') {
+      silverCount = total - badCount;
+      log('  Mode: ON VIOLATION DROP — dropping ' + badCount + ' bad records', 'warn');
+      document.getElementById('dlt-silver-badges').innerHTML =
+        '<span class="expect-badge pass">' + silverCount + ' passed</span>' +
+        '<span class="expect-badge fail">' + badCount + ' dropped</span>';
+    } else {
+      if (badCount > 0) {
+        silverCount = 0;
+        silverFailed = true;
+        log('  Mode: ON VIOLATION FAIL — ' + badCount + ' violations → PIPELINE FAILED ❌', 'error');
+        document.getElementById('dlt-silver-badges').innerHTML =
+          '<span class="expect-badge fail">FAILED — ' + badCount + ' violations</span>';
+      } else {
+        silverCount = total;
+        log('  Mode: ON VIOLATION FAIL — 0 violations → passed ✓', 'success');
+        document.getElementById('dlt-silver-badges').innerHTML =
+          '<span class="expect-badge pass">' + total + ' passed</span>';
+      }
+    }
+    document.getElementById('dlt-silver-count').textContent = silverFailed ? 'FAIL' : silverCount;
+
+    // GOLD
+    if (silverFailed) {
+      document.getElementById('dlt-gold-count').textContent = 'BLOCKED';
+      document.getElementById('dlt-gold-badges').innerHTML =
+        '<span class="expect-badge fail">Upstream failure</span>';
+      log('▶ GOLD: Blocked — upstream Silver failed', 'error');
+    } else {
+      var goodRecords = action === 'warn' ? records : records.filter(r => !badRecords.has(r.id));
+      var regionAgg = {};
+      goodRecords.forEach(r => {
+        regionAgg[r.region] = (regionAgg[r.region] || 0) + r.amount;
+      });
+      var goldCount = Object.keys(regionAgg).length;
+      document.getElementById('dlt-gold-count').textContent = goldCount;
+      document.getElementById('dlt-gold-badges').innerHTML =
+        Object.entries(regionAgg).map(function(entry) {
+          return '<span class="expect-badge pass">' + entry[0] + ': $' + entry[1].toLocaleString() + '</span>';
+        }).join('');
+      log('▶ GOLD: Aggregated ' + silverCount + ' records into ' + goldCount + ' region summaries', 'success');
+      Object.entries(regionAgg).forEach(function(entry) {
+        log('  ' + entry[0] + ': total_amount = $' + entry[1].toLocaleString(), 'info');
+      });
+    }
+
+    log('── Pipeline complete ──', 'info');
+  }
+
+  function reset() {
+    logEntries = [];
+    document.getElementById('dlt-log').innerHTML = '<div style="color:var(--text-dim)">— pipeline idle — click Run Pipeline</div>';
+    ['dlt-bronze-count', 'dlt-silver-count', 'dlt-gold-count'].forEach(id =>
+      document.getElementById(id).textContent = '—');
+    ['dlt-bronze-badges', 'dlt-silver-badges', 'dlt-gold-badges'].forEach(id =>
+      document.getElementById(id).innerHTML = '');
+  }
+
+  return { run, reset };
+})();
+
+// 6 — OPTIMIZE / VACUUM / ANALYZE DEMO
+const maintDemo = (() => {
+  let files = [];
+  let logEntries = [];
+  let hasStats = false;
+
+  function log(msg) {
+    logEntries.push(msg);
+    const el = document.getElementById('maint-log');
+    el.innerHTML = logEntries.map(m =>
+      '<div class="entry"><span class="txn-op">' + m + '</span></div>'
+    ).join('');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function generate() {
+    const smallCount = parseInt(document.getElementById('maint-small').value);
+    const tombCount = parseInt(document.getElementById('maint-tomb').value);
+    hasStats = false;
+
+    files = [];
+    for (let i = 0; i < smallCount; i++) {
+      files.push({ id: uid(), sizeMB: rng(2, 80), active: true, small: true, compacted: false, age: rng(1, 200) });
+    }
+    for (let i = 0; i < tombCount; i++) {
+      files.push({ id: uid(), sizeMB: rng(50, 500), active: false, small: false, compacted: false, age: rng(1, 300) });
+    }
+
+    renderGrid();
+    updateMetrics();
+    logEntries = [];
+    document.getElementById('maint-log').innerHTML = '<div style="color:var(--text-dim)">— no maintenance operations yet —</div>';
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('maint-grid');
+    grid.innerHTML = '';
+
+    files.forEach(f => {
+      let cls = '', bg = '', border = '';
+      if (!f.active) {
+        cls = 'pruned'; bg = 'rgba(248,81,73,.12)'; border = 'rgba(248,81,73,.4)';
+      } else if (f.compacted) {
+        bg = 'rgba(188,140,255,.15)'; border = 'var(--purple)';
+      } else if (f.small && f.sizeMB < 100) {
+        bg = 'rgba(210,153,34,.15)'; border = 'var(--warn)';
+      } else {
+        cls = 'highlight';
+      }
+
+      const block = makeFileBlock({
+        cls,
+        label: f.sizeMB + 'M',
+        tooltip: f.id + '.parquet<br>Size: ' + f.sizeMB + ' MB<br>Age: ' + f.age + 'h<br>' + (f.active ? (f.compacted ? 'COMPACTED' : f.small ? 'SMALL FILE' : 'ACTIVE') : 'TOMBSTONED'),
+        w: 48, h: 42,
+        bg, border
+      });
+      grid.appendChild(block);
+    });
+  }
+
+  function updateMetrics() {
+    const active = files.filter(f => f.active);
+    const tomb = files.filter(f => !f.active);
+    document.getElementById('mt-active').textContent = active.length;
+    document.getElementById('mt-tomb').textContent = tomb.length;
+    document.getElementById('mt-size').textContent = active.length ?
+      Math.round(active.reduce((s, f) => s + f.sizeMB, 0) / active.length) : 0;
+    document.getElementById('mt-stats').textContent = hasStats ? 'Yes ✓' : 'No';
+    document.getElementById('mt-stats').style.color = hasStats ? 'var(--accent2)' : 'var(--text-dim)';
+  }
+
+  function optimize() {
+    const smallFiles = files.filter(f => f.active && f.small && f.sizeMB < 100);
+    if (smallFiles.length < 2) {
+      log('OPTIMIZE: No small files to compact.');
+      return;
+    }
+
+    const targetSize = 900;
+    let bucket = [];
+    let bucketSize = 0;
+    const newFiles = [];
+    const removedIds = new Set();
+
+    smallFiles.forEach(f => {
+      bucket.push(f);
+      bucketSize += f.sizeMB;
+      if (bucketSize >= targetSize || bucket.length >= 8) {
+        bucket.forEach(b => {
+          b.active = false;
+          removedIds.add(b.id);
+        });
+        newFiles.push({ id: uid(), sizeMB: bucketSize, active: true, small: false, compacted: true, age: 0 });
+        log('OPTIMIZE: Compacted ' + bucket.length + ' files (' + bucketSize + ' MB) → 1 file');
+        bucket = [];
+        bucketSize = 0;
+      }
+    });
+
+    if (bucket.length > 1) {
+      bucket.forEach(b => { b.active = false; removedIds.add(b.id); });
+      newFiles.push({ id: uid(), sizeMB: bucketSize, active: true, small: false, compacted: true, age: 0 });
+      log('OPTIMIZE: Compacted ' + bucket.length + ' files (' + bucketSize + ' MB) → 1 file');
+    }
+
+    files.push(...newFiles);
+    log('OPTIMIZE complete: ' + removedIds.size + ' small files → ' + newFiles.length + ' compacted files');
+    renderGrid();
+    updateMetrics();
+  }
+
+  function vacuum() {
+    const retention = parseInt(document.getElementById('maint-retention').value);
+    const tombstoned = files.filter(f => !f.active && f.age > retention);
+
+    if (tombstoned.length === 0) {
+      log('VACUUM: No files older than ' + retention + 'h retention to remove.');
+      return;
+    }
+
+    const removedIds = new Set(tombstoned.map(f => f.id));
+    files = files.filter(f => !removedIds.has(f.id));
+
+    log('VACUUM (retention=' + retention + 'h): Permanently deleted ' + removedIds.size + ' tombstoned files');
+    log('⚠️  Time travel to versions using these files is no longer possible');
+    renderGrid();
+    updateMetrics();
+  }
+
+  function analyze() {
+    hasStats = true;
+    const active = files.filter(f => f.active);
+    log('ANALYZE TABLE: Computed statistics across ' + active.length + ' files');
+    log('  → distinct_count, null_count, min, max, avg_length for all columns');
+    log('  → CBO can now choose optimal join strategies');
+    updateMetrics();
+  }
+
+  function reset() {
+    logEntries = [];
+    generate();
+  }
+
+  setTimeout(() => generate(), 250);
+
+  return { generate, optimize, vacuum, analyze, reset };
+})();
+</script>
