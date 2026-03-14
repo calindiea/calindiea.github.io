@@ -6,6 +6,16 @@ categories: [technology, notes]
 ---
 
 <style>
+/* ── Break out of narrow post container ────────────────── */
+.post:has(.dbx-playground) {
+  max-width: 95vw;
+  width: 95vw;
+  margin-left: 50%;
+  transform: translateX(-50%);
+  padding-left: 2.5vw;
+  padding-right: 2.5vw;
+}
+
 /* ── RESET & BASE (scoped to post) ─────────────────────── */
 .dbx-playground *,
 .dbx-playground *::before,
