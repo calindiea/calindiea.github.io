@@ -41,7 +41,11 @@ layout: default
               <h3 class="post-title">
                 <a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a>
               </h3>
-              {%- if post.excerpt -%}
+              {%- if post.description -%}
+                <div class="post-excerpt">
+                  {{ post.description | truncatewords: 25 }}
+                </div>
+              {%- elsif post.excerpt -%}
                 <div class="post-excerpt">
                   {{ post.excerpt | strip_html | truncatewords: 25 }}
                 </div>
