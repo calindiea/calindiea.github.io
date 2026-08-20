@@ -9,6 +9,23 @@ permalink: /about/
 
 I'm a **Software Engineer** based in **Bucharest, Romania**, currently 26 years old, working with data systems and financial applications.
 
+<div class="home-snapshot">
+  <div class="snapshot-grid">
+    <div class="snapshot-item">
+      <span class="snapshot-label">Currently</span>
+      <span class="snapshot-value">Data Engineer at Tremend</span>
+    </div>
+    <div class="snapshot-item">
+      <span class="snapshot-label">Working with</span>
+      <span class="snapshot-value">Databricks · Python · Azure · Oracle</span>
+    </div>
+    <div class="snapshot-item">
+      <span class="snapshot-label">Interests</span>
+      <span class="snapshot-value">Financial computing · GenAI · Philosophy</span>
+    </div>
+  </div>
+</div>
+
 ## 🚀 What I Do
 
 I currently work as a **Data Engineer**, designing Databricks-based solutions for end-to-end batch ingestion from files and databases. I implement **ELT pipelines** using the **Medallion Architecture** (Bronze → Silver → Gold), collaborate with business stakeholders to define data and validation rules, and design transformations that serve the Gold/analytics layer.
@@ -16,22 +33,6 @@ I currently work as a **Data Engineer**, designing Databricks-based solutions fo
 Before moving into data, I worked as a **Web Developer** — starting with **PHP** for websites and web modules in healthcare, transport, and finance, then expanding into **Node.js** and **React**. I later moved into **GenAI**, building **RAG** applications for document understanding and coding assistants (including custom chunking mechanisms). These systems initially used **Oracle Autonomous Database** as a vector store and later expanded to **Azure** and **Google Cloud**, giving me hands-on experience with multi-cloud AI deployments.
 
 I transitioned from AI to what enables it — **data**. My cross-domain background in web, AI, cloud, and data lets me consult with diverse clients and technologies. I bring **ownership**, **adaptability**, and a strong willingness to learn, and I’m comfortable proposing solutions and growing regardless of the tech stack.
-
-
-### Current Role: Data Engineer at Tremend
-*July 2021 - Present*
-
-🎯 **GenAI Accelerator – Team Lead** *(2024 - 2025)*
-- Leading a team that builds Text-to-SQL and RAG systems using Oracle technologies
-- Expanding our services from Oracle Cloud to Azure and Google Cloud
-- Managing technical architecture and coordinating the team
-- Presenting demos to clients and responding to RFPs
-
-💼 **Previous Positions at Tremend:**
-- **Senior Software Engineer – Web** *(2023-2024)*: Built healthcare, e-commerce, and payment solutions
-- **Software Engineer** *(2022-2023)*: Developed web modules for healthcare platforms
-- **Junior Software Engineer** *(2021-2022)*: Full-stack web development
-- **Web Development Intern** *(Summer 2021)*: PHP development and internal tools
 
 ---
 
@@ -47,6 +48,21 @@ Research: Comparative Topic Modeling
 **Computer Science**
 *Tudor Vianu National College of Computer Science* • 2014-2018
 Focus on advanced mathematics and physics
+
+### Current Role: Data Engineer at Tremend
+*July 2021 - Present*
+
+🎯 **GenAI Accelerator – Team Lead** *(2024 - 2025)*
+- Leading a team that builds Text-to-SQL and RAG systems using Oracle technologies
+- Expanding our services from Oracle Cloud to Azure and Google Cloud
+- Managing technical architecture and coordinating the team
+- Presenting demos to clients and responding to RFPs
+
+💼 **Previous Positions at Tremend:**
+- **Senior Software Engineer – Web** *(2023-2024)*: Built healthcare, e-commerce, and payment solutions
+- **Software Engineer** *(2022-2023)*: Developed web modules for healthcare platforms
+- **Junior Software Engineer** *(2021-2022)*: Full-stack web development
+- **Web Development Intern** *(Summer 2021)*: PHP development and internal tools
 
 ---
 
